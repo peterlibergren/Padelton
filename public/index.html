@@ -179,6 +179,37 @@
       left: 50%;
       transform: translate(-50%, -50%);
       text-align: center;
+      width: 90%;
+    }
+
+    /* NYT: holdnavne */
+    .team-names {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      margin-bottom: 4px;
+      white-space: nowrap;
+    }
+
+    .team-name {
+      max-width: 40%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .team-home {
+      font-weight: 600;
+    }
+
+    .team-away {
+      font-weight: 600;
+    }
+
+    .vs {
+      opacity: 0.7;
+      font-size: 0.75rem;
     }
 
     .score-points {
@@ -221,16 +252,16 @@
   </main>
 
   <script>
-    // Controller-ESP32 IP
-    const CONTROLLER_URL = "";
+    // I sky-versionen bruger vi samme origin, så BASE_URL er tom streng
+    const BASE_URL = "";
 
-    // Baner til layout (ingen direkte IP mere)
+    // Baner til layout (sponsor-navne)
     const courts = [
-      { id: 2, name: "Bane 2 – Brdr. Thybo" },
-      { id: 3, name: "Bane 3 – Schantz" },
-      { id: 1, name: "Bane 1 – BetaPack" },
-      { id: 4, name: "Bane 4 – 10-4" },
-      { id: 5, name: "Bane 5 – Slagteren" },
+      { id: 2, sponsor: "Bane 2 – Brdr. Thybo" },
+      { id: 3, sponsor: "Bane 3 – Schantz" },
+      { id: 1, sponsor: "Bane 1 – BetaPack" },
+      { id: 4, sponsor: "Bane 4 – 10-4" },
+      { id: 5, sponsor: "Bane 5 – Slagteren" },
     ];
 
     const grid = document.getElementById("courtsGrid");
@@ -252,11 +283,17 @@
           </div>
 
           <div class="court-name-tag">
-            <span>${court.name}</span>
+            <span>${court.sponsor}</span>
             <span class="court-status-tag" id="status-${court.id}">Opdaterer…</span>
           </div>
 
           <div class="court-center-score">
+            <div class="team-names">
+              <span id="homeName-${court.id}" class="team-name team-home">Hjemme</span>
+              <span class="vs">vs</span>
+              <span id="awayName-${court.id}" class="team-name team-away">Ude</span>
+            </div>
+
             <div class="score-points">
               <span id="homePoints-${court.id}">–</span>
               <span class="score-divider">:</span>
@@ -279,11 +316,10 @@
       grid.appendChild(card);
     });
 
-    // Hent ALLE baner fra controlleren og opdater UI
+    // Hent ALLE baner fra sky-API og opdater UI
     async function updateAllCourts() {
       try {
-        const response = await fetch(CONTROLLER_URL + "/api/courts", { cache: "no-store" });
-
+        const response = await fetch(BASE_URL + "/api/courts", { cache: "no-store" });
         if (!response.ok) {
           throw new Error("HTTP " + response.status);
         }
@@ -292,8 +328,16 @@
 
         data.forEach(c => {
           const id = c.courtId;
-          const statusEl = document.getElementById(`status-${id}`);
-          if (!statusEl) return; // hvis banen ikke er på layoutet
+          const statusEl   = document.getElementById(`status-${id}`);
+          const homeNameEl = document.getElementById(`homeName-${id}`);
+          const awayNameEl = document.getElementById(`awayName-${id}`);
+          const homePointsEl = document.getElementById(`homePoints-${id}`);
+          const awayPointsEl = document.getElementById(`awayPoints-${id}`);
+          const gamesEl    = document.getElementById(`games-${id}`);
+          const setsEl     = document.getElementById(`sets-${id}`);
+          const updatedEl  = document.getElementById(`updated-${id}`);
+
+          if (!statusEl) return; // banen findes ikke i layoutet
 
           // Online/offline
           statusEl.textContent = c.online ? "Online" : "Offline";
@@ -303,15 +347,11 @@
             statusEl.classList.add("error");
           }
 
-          // Score
-          const homePointsEl = document.getElementById(`homePoints-${id}`);
-          const awayPointsEl = document.getElementById(`awayPoints-${id}`);
-          const gamesEl      = document.getElementById(`games-${id}`);
-          const setsEl       = document.getElementById(`sets-${id}`);
-          const updatedEl    = document.getElementById(`updated-${id}`);
+          // Holdnavne
+          if (homeNameEl) homeNameEl.textContent = c.homeName || "Hjemme";
+          if (awayNameEl) awayNameEl.textContent = c.awayName || "Ude";
 
-          // Brug tekst-versionen af points (0/15/30/40/AD eller tiebreak-tal),
-          // som kommer direkte fra bane-ESP'ens logik via controlleren
+          // Point (tekst fra bane-ESP)
           if (homePointsEl) {
             const hpStr = c.homePointsStr ?? null;
             homePointsEl.textContent = (hpStr !== null && hpStr !== undefined)
@@ -326,6 +366,7 @@
               : String(c.awayPoints ?? "");
           }
 
+          // Partier og sæt
           if (gamesEl) {
             gamesEl.textContent = `${c.homeGames ?? 0} : ${c.awayGames ?? 0}`;
           }
@@ -334,6 +375,7 @@
             setsEl.textContent = `${c.homeSets ?? 0} : ${c.awaySets ?? 0}`;
           }
 
+          // Tidsstempel
           if (updatedEl) {
             const now = new Date();
             const timeStr = now.toLocaleTimeString("da-DK", {
@@ -346,7 +388,7 @@
         });
       } catch (err) {
         console.error("Fejl ved hentning af courts:", err);
-        // Hvis controller ikke svarer, markér alle som offline
+        // Hvis API ikke svarer, markér alle som offline
         courts.forEach(court => {
           const statusEl = document.getElementById(`status-${court.id}`);
           if (statusEl) {
