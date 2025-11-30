@@ -2,7 +2,7 @@
 <html lang="da">
 <head>
   <meta charset="UTF-8" />
-  <title>Padelton Admin – Spillernavne</title>
+  <title>Padelton Admin – Spillere & baner</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     :root {
@@ -38,53 +38,92 @@
       margin-top: 4px;
     }
 
+    .top-links {
+      margin-top: 4px;
+      font-size: 0.8rem;
+    }
+
+    .top-links a {
+      color: #38bdf8;
+      text-decoration: none;
+      margin: 0 4px;
+    }
+
+    .top-links a:hover {
+      text-decoration: underline;
+    }
+
     main {
       width: 100%;
-      max-width: 700px;
+      max-width: 900px;
       padding: 8px;
       box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
     }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 8px;
+    section {
       background: #020617;
-      border-radius: 10px;
-      overflow: hidden;
+      border-radius: 12px;
+      border: 1px solid #1f2937;
+      padding: 8px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
     }
 
-    th, td {
-      padding: 6px 8px;
+    h2 {
+      margin: 0 0 6px;
+      font-size: 1rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .small {
+      font-size: 0.8rem;
+      color: #9ca3af;
+      margin-bottom: 6px;
+    }
+
+    /* spiller-lister */
+    .roster-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+    }
+
+    .roster-column h3 {
+      margin: 0 0 4px;
       font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
     }
 
-    th {
-      text-align: left;
-      background: #0f172a;
-      border-bottom: 1px solid #1f2937;
+    .player-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 4px;
+      gap: 4px;
+      font-size: 0.8rem;
     }
 
-    tr:nth-child(even) td {
-      background: rgba(15, 23, 42, 0.7);
+    .player-row span {
+      width: 1.8em;
+      text-align: right;
+      opacity: 0.7;
     }
 
-    tr:nth-child(odd) td {
-      background: rgba(15, 23, 42, 0.9);
-    }
-
-    input {
-      width: 100%;
-      padding: 4px 6px;
+    input[type="text"] {
+      flex: 1;
+      padding: 3px 6px;
       border-radius: 6px;
       border: 1px solid #4b5563;
       background: #020617;
       color: #e5e7eb;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       box-sizing: border-box;
     }
 
-    input:focus {
+    input[type="text"]:focus {
       outline: none;
       border-color: #38bdf8;
       box-shadow: 0 0 0 1px #38bdf8;
@@ -105,6 +144,54 @@
       background: #0b1120;
     }
 
+    .btn-row {
+      margin-top: 6px;
+      text-align: right;
+    }
+
+    /* bane-assignments */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 6px;
+    }
+
+    th, td {
+      padding: 5px 6px;
+      font-size: 0.85rem;
+    }
+
+    th {
+      text-align: left;
+      background: #0f172a;
+      border-bottom: 1px solid #1f2937;
+    }
+
+    tr:nth-child(even) td {
+      background: rgba(15, 23, 42, 0.85);
+    }
+
+    tr:nth-child(odd) td {
+      background: rgba(15, 23, 42, 0.6);
+    }
+
+    select {
+      width: 100%;
+      padding: 3px 6px;
+      border-radius: 6px;
+      border: 1px solid #4b5563;
+      background: #020617;
+      color: #e5e7eb;
+      font-size: 0.8rem;
+      box-sizing: border-box;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 1px #38bdf8;
+    }
+
     .status-cell {
       font-size: 0.75rem;
       color: #9ca3af;
@@ -119,24 +206,9 @@
       color: #f97373;
     }
 
-    .top-links {
-      margin-top: 4px;
-      font-size: 0.8rem;
-    }
-
-    .top-links a {
-      color: #38bdf8;
-      text-decoration: none;
-      margin: 0 4px;
-    }
-
-    .top-links a:hover {
-      text-decoration: underline;
-    }
-
     @media (max-width: 600px) {
-      th:nth-child(4),
-      td:nth-child(4) {
+      th:nth-child(5),
+      td:nth-child(5) {
         display: none; /* skjul status-kolonne på meget smal mobil */
       }
     }
@@ -145,7 +217,7 @@
 <body>
   <header>
     <h1>PADELTON ADMIN</h1>
-    <div class="subtitle">Spillernavne pr. bane</div>
+    <div class="subtitle">Spillere & baner</div>
     <div class="top-links">
       <a href="/view.html" target="_blank">Åbn public view</a> •
       <a href="/" target="_blank">Åbn hoved-scoreboard</a>
@@ -153,24 +225,51 @@
   </header>
 
   <main>
-    <table>
-      <thead>
-        <tr>
-          <th>Bane</th>
-          <th>Hjemmehold</th>
-          <th>Udehold</th>
-          <th>Status</th>
-          <th>Gem</th>
-        </tr>
-      </thead>
-      <tbody id="courtsBody">
-        <!-- Rækker genereres via JS -->
-      </tbody>
-    </table>
+    <!-- SPILLERLISTER -->
+    <section>
+      <h2>Spillerliste</h2>
+      <div class="small">
+        Udfyld op til 16 spillere for hjemme og ude. Brug numrene til at tildele spillere til banerne nedenfor.
+      </div>
+      <div class="roster-grid">
+        <div class="roster-column">
+          <h3>Hjemme</h3>
+          <div id="homeRoster"></div>
+        </div>
+        <div class="roster-column">
+          <h3>Ude</h3>
+          <div id="awayRoster"></div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button type="button" onclick="saveRoster()">Gem spillerliste</button>
+        <span id="rosterStatus" style="margin-left:8px; font-size:0.8rem;"></span>
+      </div>
+    </section>
+
+    <!-- BANE-ASSIGNMENTS -->
+    <section>
+      <h2>Baner & spillerpar</h2>
+      <div class="small">
+        Vælg hvilke spillere (nummer fra listen ovenfor) der spiller på hver bane.
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Bane</th>
+            <th>Hjemme-par (2 spillere)</th>
+            <th>Ude-par (2 spillere)</th>
+            <th>Gem</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="courtsBody"></tbody>
+      </table>
+    </section>
   </main>
 
   <script>
-    const courts = [
+    const courtsMeta = [
       { id: 2, sponsor: "Bane 2 – Brdr. Thybo" },
       { id: 3, sponsor: "Bane 3 – Schantz" },
       { id: 1, sponsor: "Bane 1 – BetaPack" },
@@ -178,82 +277,195 @@
       { id: 5, sponsor: "Bane 5 – Slagteren" },
     ];
 
-    const tbody = document.getElementById("courtsBody");
+    const MAX_PLAYERS = 16;
 
-    // Lav rækker
-    courts.forEach(court => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${court.sponsor}</td>
-        <td>
-          <input type="text" id="homeName-${court.id}" placeholder="Hjemmehold" />
-        </td>
-        <td>
-          <input type="text" id="awayName-${court.id}" placeholder="Udehold" />
-        </td>
-        <td class="status-cell">
-          <span id="status-${court.id}"></span>
-        </td>
-        <td>
-          <button type="button" onclick="saveCourt(${court.id})">Gem</button>
-        </td>
-      `;
-      tbody.appendChild(tr);
-    });
+    const homeRosterDiv = document.getElementById("homeRoster");
+    const awayRosterDiv = document.getElementById("awayRoster");
+    const courtsBody = document.getElementById("courtsBody");
+    const rosterStatus = document.getElementById("rosterStatus");
 
-    async function loadCurrentNames() {
-      try {
-        const resp = await fetch("/api/courts", { cache: "no-store" });
-        if (!resp.ok) throw new Error("HTTP " + resp.status);
+    // Byg inputfelter for spillerlister
+    function buildRosterInputs() {
+      homeRosterDiv.innerHTML = "";
+      awayRosterDiv.innerHTML = "";
 
-        const data = await resp.json();
-        data.forEach(c => {
-          const id = c.courtId;
-          const homeInput = document.getElementById(`homeName-${id}`);
-          const awayInput = document.getElementById(`awayName-${id}`);
-          if (!homeInput || !awayInput) return;
+      for (let i = 1; i <= MAX_PLAYERS; i++) {
+        const hr = document.createElement("div");
+        hr.className = "player-row";
+        hr.innerHTML = `
+          <span>${i}.</span>
+          <input type="text" id="homePlayer-${i}" placeholder="Spiller ${i}" />
+        `;
+        homeRosterDiv.appendChild(hr);
 
-          homeInput.value = c.homeName || "";
-          awayInput.value = c.awayName || "";
-        });
-      } catch (err) {
-        console.error("Kunne ikke hente nuværende navne:", err);
+        const ar = document.createElement("div");
+        ar.className = "player-row";
+        ar.innerHTML = `
+          <span>${i}.</span>
+          <input type="text" id="awayPlayer-${i}" placeholder="Spiller ${i}" />
+        `;
+        awayRosterDiv.appendChild(ar);
       }
     }
 
-    async function saveCourt(id) {
-      const homeInput = document.getElementById(`homeName-${id}`);
-      const awayInput = document.getElementById(`awayName-${id}`);
-      const statusSpan = document.getElementById(`status-${id}`);
+    // Byg bane-rækker
+    function buildCourtRows() {
+      courtsBody.innerHTML = "";
 
-      if (!homeInput || !awayInput || !statusSpan) return;
+      courtsMeta.forEach(court => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${court.sponsor}</td>
+          <td>
+            <div style="display:flex; gap:4px;">
+              <select id="homeIdx1-${court.id}"></select>
+              <select id="homeIdx2-${court.id}"></select>
+            </div>
+          </td>
+          <td>
+            <div style="display:flex; gap:4px;">
+              <select id="awayIdx1-${court.id}"></select>
+              <select id="awayIdx2-${court.id}"></select>
+            </div>
+          </td>
+          <td>
+            <button type="button" onclick="saveCourt(${court.id})">Gem bane</button>
+          </td>
+          <td class="status-cell">
+            <span id="status-${court.id}"></span>
+          </td>
+        `;
+        courtsBody.appendChild(tr);
+      });
+    }
 
-      const homeName = homeInput.value.trim();
-      const awayName = awayInput.value.trim();
+    // Fyld dropdowns med 0..16
+    function fillSelectOptions() {
+      courtsMeta.forEach(court => {
+        ["homeIdx1", "homeIdx2", "awayIdx1", "awayIdx2"].forEach(prefix => {
+          const sel = document.getElementById(`${prefix}-${court.id}`);
+          if (!sel) return;
+          sel.innerHTML = "";
+          const optEmpty = document.createElement("option");
+          optEmpty.value = "";
+          optEmpty.textContent = "(ingen)";
+          sel.appendChild(optEmpty);
+
+          for (let i = 1; i <= MAX_PLAYERS; i++) {
+            const opt = document.createElement("option");
+            opt.value = String(i);
+            opt.textContent = String(i);
+            sel.appendChild(opt);
+          }
+        });
+      });
+    }
+
+    // Hent adminState fra server (spillere + bane-assignments)
+    async function loadAdminState() {
+      try {
+        const resp = await fetch("/api/adminState", { cache: "no-store" });
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+
+        const data = await resp.json();
+
+        const hp = Array.isArray(data.homePlayers) ? data.homePlayers : [];
+        const ap = Array.isArray(data.awayPlayers) ? data.awayPlayers : [];
+
+        // Udfyld spillerfelter
+        for (let i = 1; i <= MAX_PLAYERS; i++) {
+          const hInput = document.getElementById(`homePlayer-${i}`);
+          const aInput = document.getElementById(`awayPlayer-${i}`);
+          if (hInput) hInput.value = hp[i - 1] || "";
+          if (aInput) aInput.value = ap[i - 1] || "";
+        }
+
+        // Udfyld dropdown-valg pr. bane
+        if (Array.isArray(data.courts)) {
+          data.courts.forEach(c => {
+            const id = c.courtId;
+            const h1 = document.getElementById(`homeIdx1-${id}`);
+            const h2 = document.getElementById(`homeIdx2-${id}`);
+            const a1 = document.getElementById(`awayIdx1-${id}`);
+            const a2 = document.getElementById(`awayIdx2-${id}`);
+
+            if (h1 && c.homeIdx1 != null) h1.value = String(c.homeIdx1);
+            if (h2 && c.homeIdx2 != null) h2.value = String(c.homeIdx2);
+            if (a1 && c.awayIdx1 != null) a1.value = String(c.awayIdx1);
+            if (a2 && c.awayIdx2 != null) a2.value = String(c.awayIdx2);
+          });
+        }
+      } catch (err) {
+        console.error("Fejl ved loadAdminState:", err);
+      }
+    }
+
+    async function saveRoster() {
+      const hp = [];
+      const ap = [];
+      for (let i = 1; i <= MAX_PLAYERS; i++) {
+        const hInput = document.getElementById(`homePlayer-${i}`);
+        const aInput = document.getElementById(`awayPlayer-${i}`);
+        hp.push(hInput ? hInput.value.trim() : "");
+        ap.push(aInput ? aInput.value.trim() : "");
+      }
+
+      rosterStatus.textContent = "Gemmer...";
+      rosterStatus.style.color = "#e5e7eb";
+
+      try {
+        const resp = await fetch("/api/setRoster", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ homePlayers: hp, awayPlayers: ap }),
+        });
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+
+        rosterStatus.textContent = "Spillerliste gemt";
+        rosterStatus.style.color = "#22c55e";
+      } catch (err) {
+        console.error("Fejl ved saveRoster:", err);
+        rosterStatus.textContent = "Fejl ved gem";
+        rosterStatus.style.color = "#f97373";
+      }
+
+      setTimeout(() => {
+        rosterStatus.textContent = "";
+      }, 3000);
+    }
+
+    async function saveCourt(courtId) {
+      const statusSpan = document.getElementById(`status-${courtId}`);
+      const h1 = document.getElementById(`homeIdx1-${courtId}`);
+      const h2 = document.getElementById(`homeIdx2-${courtId}`);
+      const a1 = document.getElementById(`awayIdx1-${courtId}`);
+      const a2 = document.getElementById(`awayIdx2-${courtId}`);
+
+      if (!statusSpan || !h1 || !h2 || !a1 || !a2) return;
 
       statusSpan.textContent = "Gemmer...";
       statusSpan.className = "status-cell";
 
+      const body = {
+        courtId,
+        homeIdx1: h1.value ? Number(h1.value) : null,
+        homeIdx2: h2.value ? Number(h2.value) : null,
+        awayIdx1: a1.value ? Number(a1.value) : null,
+        awayIdx2: a2.value ? Number(a2.value) : null,
+      };
+
       try {
-        const resp = await fetch("/api/setNames", {
+        const resp = await fetch("/api/setCourtPlayers", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            courtId: id,
-            homeName,
-            awayName,
-          }),
+          body: JSON.stringify(body),
         });
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
 
-        if (!resp.ok) {
-          throw new Error("HTTP " + resp.status);
-        }
-
-        const data = await resp.json();
         statusSpan.textContent = "Gemt";
         statusSpan.className = "status-cell status-ok";
       } catch (err) {
-        console.error("Fejl ved gem for bane", id, err);
+        console.error("Fejl ved saveCourt:", err);
         statusSpan.textContent = "Fejl";
         statusSpan.className = "status-cell status-error";
       }
@@ -264,8 +476,11 @@
       }, 3000);
     }
 
-    // Hent nuværende navne ved load
-    loadCurrentNames();
+    // Init
+    buildRosterInputs();
+    buildCourtRows();
+    fillSelectOptions();
+    loadAdminState();
   </script>
 </body>
 </html>
