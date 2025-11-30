@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8" />
+  <title>Padelton – Live scoreboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      font-family: system-ui, sans-serif;
+      background: #020617;
+      color: #e5e7eb;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: radial-gradient(circle at top, #0f172a 0, #020617 50%);
+    }
+
+    header {
+      text-align: center;
+      padding: 8px 6px 4px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.6rem, 3vw, 2.4rem);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      margin-top: 2px;
+      font-size: 0.8rem;
+      color: #9ca3af;
+    }
+
+    /* GRID til baner – mobilvenlig */
+    .courts-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      padding: 8px;
+      box-sizing: border-box;
+      align-items: stretch;
+    }
+
+    .court-card {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .court-surface {
+      position: relative;
+      aspect-ratio: 2 / 1;
+      width: 100%;
+      max-width: 480px;
+      margin-inline: auto;
+      background: #1b3a7a;
+      border-radius: 12px;
+      border: 4px solid #ffffff;
+      box-shadow: 0 18px 30px rgba(0, 0, 0, 0.6);
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
+    /* Indre bane-ramme */
+    .court-lines {
+      position: absolute;
+      inset: 12% 8%;
+      border: 2px solid #ffffff;
+      box-sizing: border-box;
+    }
+
+    .line {
+      position: absolute;
+      background: #ffffff;
+    }
+
+    /* Net – lodret linje midt på banen */
+    .line-net {
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      width: 3px;
+      transform: translateX(-50%);
+    }
+
+    /* Servelinjer – lodrette, 3,05 m fra hver bagvæg (≈15,25%) */
+    .line-service {
+      top: 0;
+      bottom: 0;
+      width: 2px;
+    }
+
+    .service-left {
+      left: 15.25%;
+    }
+
+    .service-right {
+      left: 84.75%;
+    }
+
+    /* Center-servicelinjer – vandrette stykker mellem servelinje og net */
+    .line-center {
+      height: 2px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .center-left {
+      left: 15.25%;
+      width: 34.75%;
+    }
+
+    .center-right {
+      left: 50%;
+      width: 34.75%;
+    }
+
+    /* Toplinje med banenavn + status */
+    .court-name-tag {
+      position: absolute;
+      top: 6px;
+      left: 10px;
+      right: 10px;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      display: flex;
+      justify-content: space-between;
+      color: #e5e7eb;
+    }
+
+    .court-status-tag {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+    }
+
+    .court-status-tag.error {
+      border-color: #f97373;
+      color: #fecaca;
+    }
+
+    /* Center-indhold */
+    .court-center-score {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      width: 92%;
+    }
+
+    .team-names {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      margin-bottom: 4px;
+      white-space: nowrap;
+    }
+
+    .team-name {
+      max-width: 45%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .team-home {
+      font-weight: 600;
+    }
+
+    .team-away {
+      font-weight: 600;
+    }
+
+    .vs {
+      opacity: 0.7;
+      font-size: 0.72rem;
+    }
+
+    .score-points {
+      font-size: clamp(2.0rem, 5vw, 3.0rem);
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .score-divider {
+      margin: 0 0.25em;
+    }
+
+    .score-subline {
+      margin-top: 4px;
+      font-size: 0.8rem;
+      color: #e5e7eb;
+      opacity: 0.9;
+    }
+
+    .court-footer-time {
+      position: absolute;
+      bottom: 6px;
+      left: 10px;
+      right: 10px;
+      font-size: 0.7rem;
+      color: #cbd5f5;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .small-label {
+      opacity: 0.7;
+    }
+
+    /* Mobil-tilpasning */
+    @media (max-width: 600px) {
+      header {
+        padding: 6px 4px 2px;
+      }
+
+      h1 {
+        font-size: 1.4rem;
+        letter-spacing: 0.08em;
+      }
+
+      .courts-grid {
+        gap: 6px;
+        padding: 4px;
+      }
+
+      .score-points {
+        font-size: 2.2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>PADELTON LIVE</h1>
+    <div class="subtitle">Aktuelle stillinger på alle baner</div>
+  </header>
+
+  <main class="courts-grid" id="courtsGrid">
+    <!-- Banekort genereres af JavaScript -->
+  </main>
+
+  <script>
+    // Vi kalder bare /api/courts på samme origin
+    const BASE_URL = "";
+
+    const courts = [
+      { id: 2, sponsor: "Bane 2 – Brdr. Thybo" },
+      { id: 3, sponsor: "Bane 3 – Schantz" },
+      { id: 1, sponsor: "Bane 1 – BetaPack" },
+      { id: 4, sponsor: "Bane 4 – 10-4" },
+      { id: 5, sponsor: "Bane 5 – Slagteren" },
+    ];
+
+    const grid = document.getElementById("courtsGrid");
+
+    // Opret UI for hver bane
+    courts.forEach(court => {
+      const card = document.createElement("article");
+      card.className = "court-card";
+      card.id = `court-${court.id}`;
+
+      card.innerHTML = `
+        <div class="court-surface">
+          <div class="court-lines">
+            <div class="line line-service service-left"></div>
+            <div class="line line-service service-right"></div>
+            <div class="line line-net"></div>
+            <div class="line line-center center-left"></div>
+            <div class="line line-center center-right"></div>
+          </div>
+
+          <div class="court-name-tag">
+            <span>${court.sponsor}</span>
+            <span class="court-status-tag" id="status-${court.id}">Opdaterer…</span>
+          </div>
+
+          <div class="court-center-score">
+            <div class="team-names">
+              <span id="homeName-${court.id}" class="team-name team-home">Hjemme</span>
+              <span class="vs">vs</span>
+              <span id="awayName-${court.id}" class="team-name team-away">Ude</span>
+            </div>
+
+            <div class="score-points">
+              <span id="homePoints-${court.id}">–</span>
+              <span class="score-divider">:</span>
+              <span id="awayPoints-${court.id}">–</span>
+            </div>
+            <div class="score-subline">
+              Partier:
+              <span id="games-${court.id}">– : –</span><br />
+              Sæt:
+              <span id="sets-${court.id}">– : –</span>
+            </div>
+          </div>
+
+          <div class="court-footer-time">
+            <span class="small-label">Sidst opdateret:</span>
+            <span id="updated-${court.id}">–</span>
+          </div>
+        </div>
+      `;
+
+      grid.appendChild(card);
+    });
+
+    async function updateAllCourts() {
+      try {
+        const response = await fetch(BASE_URL + "/api/courts", { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error("HTTP " + response.status);
+        }
+
+        const data = await response.json();
+
+        data.forEach(c => {
+          const id = c.courtId;
+          const statusEl     = document.getElementById(`status-${id}`);
+          const homeNameEl   = document.getElementById(`homeName-${id}`);
+          const awayNameEl   = document.getElementById(`awayName-${id}`);
+          const homePointsEl = document.getElementById(`homePoints-${id}`);
+          const awayPointsEl = document.getElementById(`awayPoints-${id}`);
+          const gamesEl      = document.getElementById(`games-${id}`);
+          const setsEl       = document.getElementById(`sets-${id}`);
+          const updatedEl    = document.getElementById(`updated-${id}`);
+
+          if (!statusEl) return;
+
+          // Online/offline
+          statusEl.textContent = c.online ? "Online" : "Offline";
+          if (c.online) {
+            statusEl.classList.remove("error");
+          } else {
+            statusEl.classList.add("error");
+          }
+
+          // Holdnavne
+          if (homeNameEl) homeNameEl.textContent = c.homeName || "Hjemme";
+          if (awayNameEl) awayNameEl.textContent = c.awayName || "Ude";
+
+          // Points – brug tekststrengen fra banen (0/15/30/40/AD eller tiebreak-tal)
+          if (homePointsEl) {
+            const hpStr = c.homePointsStr ?? null;
+            homePointsEl.textContent = (hpStr !== null && hpStr !== undefined)
+              ? hpStr
+              : String(c.homePoints ?? "");
+          }
+
+          if (awayPointsEl) {
+            const apStr = c.awayPointsStr ?? null;
+            awayPointsEl.textContent = (apStr !== null && apStr !== undefined)
+              ? apStr
+              : String(c.awayPoints ?? "");
+          }
+
+          // Partier og sæt
+          if (gamesEl) {
+            gamesEl.textContent = `${c.homeGames ?? 0} : ${c.awayGames ?? 0}`;
+          }
+
+          if (setsEl) {
+            setsEl.textContent = `${c.homeSets ?? 0} : ${c.awaySets ?? 0}`;
+          }
+
+          // Tidsstempel (klienttid er fint)
+          if (updatedEl) {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString("da-DK", {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            });
+            updatedEl.textContent = timeStr;
+          }
+        });
+      } catch (err) {
+        console.error("Fejl ved hentning af courts:", err);
+        courts.forEach(court => {
+          const statusEl = document.getElementById(`status-${court.id}`);
+          if (statusEl) {
+            statusEl.textContent = "Offline";
+            statusEl.classList.add("error");
+          }
+        });
+      }
+    }
+
+    updateAllCourts();
+    setInterval(updateAllCourts, 1000);
+  </script>
+</body>
+</html>
