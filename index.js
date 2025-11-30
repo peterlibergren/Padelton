@@ -1,22 +1,26 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Tillad JSON-body
 app.use(express.json());
-
-// Tillad CORS (så din browser kan kalde API’et fra andre domæner)
 app.use(cors());
 
 // Simpel in-memory state for 5 baner
+// (nulstilles hvis serveren genstartes – det er fint til nu)
 const courts = {};
 for (let i = 1; i <= 5; i++) {
   courts[i] = {
     courtId: i,
+    // Navne fra controller/ESP (basisnavne)
     homeName: "Hjemme",
     awayName: "Ude",
+    // Admin-overrides fra web-UI (kan være null)
+    adminHomeName: null,
+    adminAwayName: null,
+
     homePoints: 0,
     awayPoints: 0,
     homePointsStr: "0",
@@ -30,8 +34,9 @@ for (let i = 1; i <= 5; i++) {
   };
 }
 
-// API som controller-ESP kalder
+// ===== Controller → cloud: scoreopdatering =====
 // POST /api/updateScore
+// kaldes af din controller-ESP når en bane ændrer score
 app.post("/api/updateScore", (req, res) => {
   const {
     courtId,
@@ -53,6 +58,8 @@ app.post("/api/updateScore", (req, res) => {
 
   const c = courts[courtId];
 
+  // Basisnavne kan evt. komme fra controlleren
+  // (men admin-navne overskriver dem i /api/courts)
   if (homeName !== undefined) c.homeName = homeName;
   if (awayName !== undefined) c.awayName = awayName;
 
@@ -72,24 +79,66 @@ app.post("/api/updateScore", (req, res) => {
   res.json({ status: "ok" });
 });
 
-// API som scoreboardet kalder
+// ===== Admin → cloud: sæt spillernavne =====
+// POST /api/setNames
+// body: { courtId, homeName, awayName }
+app.post("/api/setNames", (req, res) => {
+  const { courtId, homeName, awayName } = req.body || {};
+
+  if (!courtId || courtId < 1 || courtId > 5) {
+    return res.status(400).json({ error: "Invalid courtId" });
+  }
+
+  const c = courts[courtId];
+
+  // Gem som admin-overrides
+  if (typeof homeName === "string") {
+    c.adminHomeName = homeName.trim() || null;
+  }
+  if (typeof awayName === "string") {
+    c.adminAwayName = awayName.trim() || null;
+  }
+
+  console.log(
+    `[ADMIN] court ${courtId} names set to:`,
+    c.adminHomeName,
+    "vs",
+    c.adminAwayName
+  );
+
+  return res.json({
+    status: "ok",
+    courtId,
+    homeName: c.adminHomeName || c.homeName,
+    awayName: c.adminAwayName || c.awayName,
+  });
+});
+
+// ===== Scoreboard & view: hent alle baner =====
 // GET /api/courts
 app.get("/api/courts", (req, res) => {
   const now = Date.now();
 
   const list = Object.values(courts).map(c => {
-    const online = now - c.lastUpdate < 10000; // 10 sekunder
+    const online = now - c.lastUpdate < 10000; // online hvis opdateret inden for 10 sekunder
+
+    // Effektive navne: admin-navn hvis sat, ellers basisnavn
+    const effHomeName = c.adminHomeName || c.homeName;
+    const effAwayName = c.adminAwayName || c.awayName;
+
     return {
       ...c,
       online,
+      homeName: effHomeName,
+      awayName: effAwayName,
     };
   });
 
   res.json(list);
 });
 
-// Server statiske filer fra ./public (scoreboard.html)
-app.use(express.static("public"));
+// ===== Statisk hosting af public/ (index.html, view.html, admin.html, ...) =====
+app.use(express.static(path.join(__dirname, "public")));
 
 app.listen(PORT, () => {
   console.log(`Padelton cloud server lytter på port ${PORT}`);
