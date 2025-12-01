@@ -182,7 +182,7 @@
       width: 90%;
     }
 
-    /* NYT: holdnavne */
+    /* holdnavne */
     .team-names {
       display: flex;
       justify-content: center;
@@ -339,11 +339,15 @@
 
           if (!statusEl) return; // banen findes ikke i layoutet
 
-          // Online/offline
-          statusEl.textContent = c.online ? "Online" : "Offline";
-          if (c.online) {
+          // Kamp-status baseret på hasMatch + online
+          if (!c.hasMatch) {
+            statusEl.textContent = "Ingen kamp";
+            statusEl.classList.remove("error");
+          } else if (c.online) {
+            statusEl.textContent = "I gang";
             statusEl.classList.remove("error");
           } else {
+            statusEl.textContent = "Ingen forbindelse";
             statusEl.classList.add("error");
           }
 
@@ -388,11 +392,11 @@
         });
       } catch (err) {
         console.error("Fejl ved hentning af courts:", err);
-        // Hvis API ikke svarer, markér alle som offline
+        // Hvis API ikke svarer, markér alle som "Ingen forbindelse"
         courts.forEach(court => {
           const statusEl = document.getElementById(`status-${court.id}`);
           if (statusEl) {
-            statusEl.textContent = "Offline";
+            statusEl.textContent = "Ingen forbindelse";
             statusEl.classList.add("error");
           }
         });
