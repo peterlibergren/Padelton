@@ -312,23 +312,36 @@
       const loserPtsKey = `set${setNumber}LoserTbPoints`;
       const loserIsHomeKey = `set${setNumber}LoserIsHome`;
 
-      const gHome = c[homeKey];
-      const gAway = c[awayKey];
+  const gHome = c[homeKey];
+  const gAway = c[awayKey];
 
-      // hvis vi ikke har begge tal, vis "–"
-      if (gHome === undefined || gAway === undefined) {
-        return "–";
-      }
+  // hvis vi ikke har tal, eller de er -1 => ingen data endnu
+  if (
+    gHome === undefined ||
+    gAway === undefined ||
+    gHome === null ||
+    gAway === null ||
+    gHome < 0 ||
+    gAway < 0
+  ) {
+    return "–";
+  }
 
-      const base = isHome ? gHome : gAway;
+  const base = isHome ? gHome : gAway;
 
-      const loserTbPoints = c[loserPtsKey];
-      const loserIsHome = c[loserIsHomeKey];
+  const loserTbPoints = c[loserPtsKey];
+  const loserIsHome = c[loserIsHomeKey];
 
-      // hvis vi slet ikke får TB-info, bare vis tallet
-      if (loserTbPoints === undefined || loserIsHome === undefined) {
-        return String(base);
-      }
+  // ingen TB-info => bare tallet
+  if (
+    loserTbPoints === undefined ||
+    loserIsHome === undefined ||
+    loserTbPoints === null ||
+    loserTbPoints < 0
+  ) {
+    return String(base);
+  }
+
 
       const thisIsLoser = isHome ? loserIsHome : !loserIsHome;
 
