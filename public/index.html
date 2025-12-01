@@ -173,60 +173,73 @@
       color: #fecaca;
     }
 
+    /* Scoreboard-tabel i midten */
     .court-center-score {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      text-align: center;
-      width: 90%;
+      width: 92%;
+      font-size: 0.8rem;
     }
 
-    /* holdnavne */
-    .team-names {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.8rem;
-      margin-bottom: 4px;
+    .score-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .score-header-row {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #cbd5f5;
+    }
+
+    .score-header-row th {
+      font-weight: 500;
+      text-align: right;
+    }
+
+    .score-header-row th:first-child {
+      text-align: left;
+      padding-right: 4px;
+    }
+
+    .score-row td {
+      padding: 2px 0;
+      vertical-align: middle;
+    }
+
+    .player-name-cell {
+      text-align: left;
+      padding-right: 4px;
+      max-width: 55%;
+      overflow: hidden;
+      text-overflow: ellipsis;
       white-space: nowrap;
     }
 
-    .team-name {
-      max-width: 40%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .team-home {
+    .player-name-home {
       font-weight: 600;
     }
 
-    .team-away {
+    .player-name-away {
       font-weight: 600;
     }
 
-    .vs {
+    .score-cell {
+      text-align: right;
+      min-width: 2.2em;
+      font-weight: 600;
+    }
+
+    .score-sublabel {
+      font-size: 0.7rem;
       opacity: 0.7;
-      font-size: 0.75rem;
     }
 
-    .score-points {
-      font-size: clamp(2.2rem, 3vw, 3.4rem);
-      font-weight: 700;
-      line-height: 1;
-    }
-
-    .score-divider {
-      margin: 0 0.3em;
-    }
-
-    .score-subline {
-      margin-top: 6px;
-      font-size: 0.85rem;
-      color: #e5e7eb;
-      opacity: 0.9;
+    .empty-row td {
+      padding: 2px 0 4px;
     }
 
     .court-footer-time {
@@ -288,23 +301,64 @@
           </div>
 
           <div class="court-center-score">
-            <div class="team-names">
-              <span id="homeName-${court.id}" class="team-name team-home">Hjemme</span>
-              <span class="vs">vs</span>
-              <span id="awayName-${court.id}" class="team-name team-away">Ude</span>
-            </div>
+            <table class="score-table">
+              <thead>
+                <tr class="score-header-row">
+                  <th></th>
+                  <th>Point</th>
+                  <th>Parti</th>
+                  <th>Sæt</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Hjemme spiller 1 -->
+                <tr class="score-row">
+                  <td class="player-name-cell player-name-home" id="homeName1-${court.id}">Hjemme 1</td>
+                  <td class="score-cell">
+                    <span id="homePoints-${court.id}">–</span>
+                  </td>
+                  <td class="score-cell">
+                    <span id="homeGames-${court.id}">–</span>
+                  </td>
+                  <td class="score-cell">
+                    <span id="homeSets-${court.id}">–</span>
+                  </td>
+                </tr>
+                <!-- Hjemme spiller 2 (ingen tal, kun navn) -->
+                <tr class="score-row">
+                  <td class="player-name-cell player-name-home" id="homeName2-${court.id}"></td>
+                  <td class="score-cell score-sublabel"></td>
+                  <td class="score-cell score-sublabel"></td>
+                  <td class="score-cell score-sublabel"></td>
+                </tr>
 
-            <div class="score-points">
-              <span id="homePoints-${court.id}">–</span>
-              <span class="score-divider">:</span>
-              <span id="awayPoints-${court.id}">–</span>
-            </div>
-            <div class="score-subline">
-              Partier:
-              <span id="games-${court.id}">– : –</span><br />
-              Sæt:
-              <span id="sets-${court.id}">– : –</span>
-            </div>
+                <!-- Tom linje -->
+                <tr class="empty-row">
+                  <td colspan="4"></td>
+                </tr>
+
+                <!-- Ude spiller 1 -->
+                <tr class="score-row">
+                  <td class="player-name-cell player-name-away" id="awayName1-${court.id}">Ude 1</td>
+                  <td class="score-cell">
+                    <span id="awayPoints-${court.id}">–</span>
+                  </td>
+                  <td class="score-cell">
+                    <span id="awayGames-${court.id}">–</span>
+                  </td>
+                  <td class="score-cell">
+                    <span id="awaySets-${court.id}">–</span>
+                  </td>
+                </tr>
+                <!-- Ude spiller 2 (ingen tal, kun navn) -->
+                <tr class="score-row">
+                  <td class="player-name-cell player-name-away" id="awayName2-${court.id}"></td>
+                  <td class="score-cell score-sublabel"></td>
+                  <td class="score-cell score-sublabel"></td>
+                  <td class="score-cell score-sublabel"></td>
+                </tr>
+              </tbody>
+            </table>
           </div>
 
           <div class="court-footer-time">
@@ -328,14 +382,18 @@
 
         data.forEach(c => {
           const id = c.courtId;
-          const statusEl   = document.getElementById(`status-${id}`);
-          const homeNameEl = document.getElementById(`homeName-${id}`);
-          const awayNameEl = document.getElementById(`awayName-${id}`);
+          const statusEl     = document.getElementById(`status-${id}`);
+          const homeName1El  = document.getElementById(`homeName1-${id}`);
+          const homeName2El  = document.getElementById(`homeName2-${id}`);
+          const awayName1El  = document.getElementById(`awayName1-${id}`);
+          const awayName2El  = document.getElementById(`awayName2-${id}`);
           const homePointsEl = document.getElementById(`homePoints-${id}`);
           const awayPointsEl = document.getElementById(`awayPoints-${id}`);
-          const gamesEl    = document.getElementById(`games-${id}`);
-          const setsEl     = document.getElementById(`sets-${id}`);
-          const updatedEl  = document.getElementById(`updated-${id}`);
+          const homeGamesEl  = document.getElementById(`homeGames-${id}`);
+          const awayGamesEl  = document.getElementById(`awayGames-${id}`);
+          const homeSetsEl   = document.getElementById(`homeSets-${id}`);
+          const awaySetsEl   = document.getElementById(`awaySets-${id}`);
+          const updatedEl    = document.getElementById(`updated-${id}`);
 
           if (!statusEl) return; // banen findes ikke i layoutet
 
@@ -351,9 +409,18 @@
             statusEl.classList.add("error");
           }
 
-          // Holdnavne
-          if (homeNameEl) homeNameEl.textContent = c.homeName || "Hjemme";
-          if (awayNameEl) awayNameEl.textContent = c.awayName || "Ude";
+          // Holdnavne -> split til spiller 1/2
+          const homeRaw = c.homeName || "Hjemme";
+          const awayRaw = c.awayName || "Ude";
+
+          const homeParts = homeRaw.split("/").map(s => s.trim()).filter(Boolean);
+          const awayParts = awayRaw.split("/").map(s => s.trim()).filter(Boolean);
+
+          if (homeName1El) homeName1El.textContent = homeParts[0] || homeRaw || "Hjemme";
+          if (homeName2El) homeName2El.textContent = homeParts[1] || "";
+
+          if (awayName1El) awayName1El.textContent = awayParts[0] || awayRaw || "Ude";
+          if (awayName2El) awayName2El.textContent = awayParts[1] || "";
 
           // Point (tekst fra bane-ESP)
           if (homePointsEl) {
@@ -370,14 +437,13 @@
               : String(c.awayPoints ?? "");
           }
 
-          // Partier og sæt
-          if (gamesEl) {
-            gamesEl.textContent = `${c.homeGames ?? 0} : ${c.awayGames ?? 0}`;
-          }
+          // Partier
+          if (homeGamesEl) homeGamesEl.textContent = String(c.homeGames ?? 0);
+          if (awayGamesEl) awayGamesEl.textContent = String(c.awayGames ?? 0);
 
-          if (setsEl) {
-            setsEl.textContent = `${c.homeSets ?? 0} : ${c.awaySets ?? 0}`;
-          }
+          // Sæt
+          if (homeSetsEl) homeSetsEl.textContent = String(c.homeSets ?? 0);
+          if (awaySetsEl) awaySetsEl.textContent = String(c.awaySets ?? 0);
 
           // Tidsstempel
           if (updatedEl) {
