@@ -17,155 +17,72 @@
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      background: radial-gradient(circle at top, #1d283a 0, #020617 55%);
     }
 
     header {
       text-align: center;
-      padding: 6px;
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.2);
     }
 
     h1 {
       margin: 0;
-      font-size: clamp(1.8rem, 3vw, 2.6rem);
-      letter-spacing: 0.08em;
+      font-size: clamp(1.8rem, 3vw, 2.4rem);
+      letter-spacing: 0.12em;
       text-transform: uppercase;
     }
 
-    .hall-layout {
+    main {
       flex: 1;
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      grid-template-rows: repeat(3, 1fr);
-      gap: 8px;
-      padding: 6px;
+      padding: 10px;
       box-sizing: border-box;
-      overflow: hidden;
     }
 
-    /* Placering i hallen */
-    #court-2 { grid-row: 1; grid-column: 1; }
-    #court-3 { grid-row: 1; grid-column: 2; }
-    #court-1 { grid-row: 2; grid-column: 1; }
-    #court-4 { grid-row: 2; grid-column: 2; }
-    #lounge  { grid-row: 3; grid-column: 1; }
-    #court-5 { grid-row: 3; grid-column: 2; }
-
-    /* Opholdsområde */
-    .lounge-card {
-      background: radial-gradient(circle at top left, #22c55e 0, #020617 50%);
-      border-radius: 18px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    /* Liste med baner */
+    .courts-list {
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
+      gap: 10px;
+      max-width: 900px;
+      margin: 0 auto 16px;
     }
 
+    /* Court-kort */
     .court-card {
+      background: rgba(15, 23, 42, 0.95);
+      border-radius: 16px;
+      padding: 10px 12px;
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .court-header {
       display: flex;
       align-items: center;
-      justify-content: center;
-      position: relative;
-    }
-
-    /* 20×10 m → 2:1, vandret */
-    .court-surface {
-      position: relative;
-      aspect-ratio: 2 / 1;
-      width: 80%;
-      max-height: 80%;
-      background: #1b3a7a;
-      border-radius: 12px;
-      border: 4px solid #ffffff;
-      box-shadow: 0 18px 30px rgba(0, 0, 0, 0.6);
-      box-sizing: border-box;
-      overflow: hidden;
-    }
-
-    /* Indre bane-ramme */
-    .court-lines {
-      position: absolute;
-      inset: 12% 8%;
-      border: 2px solid #ffffff;
-      box-sizing: border-box;
-    }
-
-    .line {
-      position: absolute;
-      background: #ffffff;
-    }
-
-    /* Net – lodret linje midt på banen */
-    .line-net {
-      top: 0;
-      bottom: 0;
-      left: 50%;
-      width: 3px;
-      transform: translateX(-50%);
-      background: #ffffff;
-    }
-
-    /* Servelinjer – lodrette, 3,05 m fra hver bagvæg (≈15,25%) */
-    .line-service {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 2px;
-      background: #ffffff;
-    }
-
-    .service-left {
-      left: 15.25%;
-    }
-
-    .service-right {
-      left: 84.75%;
-    }
-
-    /* Center-servicelinjer – vandrette stykker mellem servelinje og net */
-    .line-center {
-      position: absolute;
-      height: 2px;
-      background: #ffffff;
-      top: 50%;
-      transform: translateY(-50%);
-    }
-
-    /* Fra venstre servelinje til net */
-    .center-left {
-      left: 15.25%;
-      width: 34.75%;   /* 50 - 15.25 */
-    }
-
-    /* Fra net til højre servelinje */
-    .center-right {
-      left: 50%;
-      width: 34.75%;   /* 84.75 - 50 */
-    }
-
-    /* Info på banen */
-    .court-name-tag {
-      position: absolute;
-      top: 6px;
-      left: 10px;
-      right: 10px;
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      display: flex;
       justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .court-title {
+      font-size: clamp(1rem, 2.1vw, 1.2rem);
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
       color: #e5e7eb;
     }
 
     .court-status-tag {
       font-size: 0.7rem;
       text-transform: uppercase;
-      padding: 2px 6px;
+      padding: 3px 8px;
       border-radius: 999px;
       border: 1px solid rgba(148, 163, 184, 0.7);
+      white-space: nowrap;
     }
 
     .court-status-tag.error {
@@ -173,87 +90,144 @@
       color: #fecaca;
     }
 
-    /* Scoreboard-tabel i midten */
-    .court-center-score {
-      position: absolute;
-      top: 52%;                  /* en anelse lavere i banen */
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 80%;                /* smallere, så vi holder os inde i de hvide linjer */
-      font-size: 0.8rem;
+    /* Hold / spillere */
+    .teams {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
 
-    .score-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 0 auto;
+    @media (min-width: 640px) {
+      .teams {
+        flex-direction: row;
+      }
     }
 
-    .score-header-row {
+    .team {
+      flex: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 2.2fr) minmax(0, 2fr);
+      column-gap: 8px;
+      row-gap: 4px;
+      align-items: center;
+    }
+
+    .team-label {
+      grid-column: 1 / -1;
       font-size: 0.75rem;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      color: #cbd5f5;
+      opacity: 0.8;
     }
 
-    .score-header-row th {
-      font-weight: 500;
-      text-align: right;
+    .team-home .team-label {
+      color: #bfdbfe;
     }
 
-    .score-header-row th:first-child {
-      text-align: left;
-      padding-right: 4px;
+    .team-away .team-label {
+      color: #fecaca;
     }
 
-    .score-row td {
-      padding: 2px 0;
-      vertical-align: middle;
-    }
-
-    .player-name-cell {
-      text-align: left;
-      padding-right: 6px;
-      max-width: 50%;
+    .player-names {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
       overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      padding-left: 10%;       /* ryk navne tydeligt ind fra baglinien */
-      font-size: 1rem;         /* større tekst */
+    }
+
+    .player-name {
+      font-size: clamp(0.95rem, 2.2vw, 1.05rem);
       line-height: 1.2;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
     }
 
-    .player-name-home {
-      color: #d1e8ff;  /* lys blå */
+    .player-sub {
+      font-size: 0.8rem;
+      opacity: 0.8;
+    }
+
+    .team-home .player-name {
+      color: #dbeafe;
       font-weight: 600;
     }
 
-    .player-name-away {
-      color: #ffd6d6;  /* lys rød */
+    .team-away .player-name {
+      color: #fee2e2;
       font-weight: 600;
     }
 
-    .score-cell {
-      text-align: right;
-      min-width: 2.2em;
-      font-weight: 600;
+    /* Score-bokse */
+    .team-score {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 4px;
+      font-size: 0.8rem;
     }
 
-    .score-sublabel {
-      font-size: 0.7rem;
+    .score-box {
+      text-align: center;
+      padding: 4px 2px;
+      border-radius: 10px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.5);
+    }
+
+    .score-label {
+      display: block;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
       opacity: 0.7;
+      margin-bottom: 2px;
     }
 
-    .empty-row td {
-      padding: 10px 0;   /* ekstra luft mellem hjemme- og udehold */
+    .score-value {
+      display: block;
+      font-weight: 600;
+      font-size: 0.95rem;
     }
 
-    .court-footer-time {
-      position: absolute;
-      bottom: 6px;
-      right: 10px;
-      font-size: 0.7rem;
+    .team-home .score-box {
+      border-color: rgba(96, 165, 250, 0.8);
+    }
+
+    .team-away .score-box {
+      border-color: rgba(248, 113, 113, 0.8);
+    }
+
+    /* Footer på kortet */
+    .court-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.72rem;
       color: #cbd5f5;
+      opacity: 0.85;
+      flex-wrap: wrap;
+      gap: 4px;
+      border-top: 1px dashed rgba(148, 163, 184, 0.4);
+      padding-top: 4px;
+      margin-top: 2px;
+    }
+
+    .court-footer span {
+      white-space: nowrap;
+    }
+
+    .court-footer span:last-child {
+      opacity: 0.8;
+    }
+
+    /* Lille info-boks nederst (valgfri) */
+    .info-card {
+      max-width: 900px;
+      margin: 0 auto 24px;
+      font-size: 0.8rem;
+      color: #9ca3af;
+      text-align: center;
+      opacity: 0.85;
     }
   </style>
 </head>
@@ -262,28 +236,30 @@
     <h1>PADELTON</h1>
   </header>
 
-  <main class="hall-layout" id="courtsGrid">
-    <!-- Opholdsområde -->
-    <article class="lounge-card" id="lounge">
-      <div>OPHOLDSOMRÅDE</div>
-      <div style="font-size:0.8rem; margin-top:4px;">Pause • Tilskuere • Hygge</div>
-    </article>
+  <main>
+    <section class="courts-list" id="courtsList">
+      <!-- Banekort indsættes her via JS -->
+    </section>
+
+    <div class="info-card">
+      Live scoreboard • Opdateres automatisk hvert sekund
+    </div>
   </main>
 
   <script>
     // I sky-versionen bruger vi samme origin, så BASE_URL er tom streng
     const BASE_URL = "";
 
-    // Baner til layout (sponsor-navne)
+    // Baner – nu bare i rækkefølge 1,2,3,4,5
     const courts = [
+      { id: 1, sponsor: "Bane 1 – BetaPack" },
       { id: 2, sponsor: "Bane 2 – Brdr. Thybo" },
       { id: 3, sponsor: "Bane 3 – Schantz" },
-      { id: 1, sponsor: "Bane 1 – BetaPack" },
       { id: 4, sponsor: "Bane 4 – 10-4" },
       { id: 5, sponsor: "Bane 5 – Slagteren" },
     ];
 
-    const grid = document.getElementById("courtsGrid");
+    const list = document.getElementById("courtsList");
 
     // Opret kort DOM for hver bane
     courts.forEach(court => {
@@ -292,88 +268,65 @@
       card.id = `court-${court.id}`;
 
       card.innerHTML = `
-        <div class="court-surface">
-          <div class="court-lines">
-            <div class="line line-service service-left"></div>
-            <div class="line line-service service-right"></div>
-            <div class="line line-net"></div>
-            <div class="line line-center center-left"></div>
-            <div class="line line-center center-right"></div>
+        <div class="court-header">
+          <div class="court-title">${court.sponsor}</div>
+          <span class="court-status-tag" id="status-${court.id}">Opdaterer…</span>
+        </div>
+
+        <div class="teams">
+          <!-- Hjemmehold -->
+          <div class="team team-home">
+            <div class="team-label">Hjemme</div>
+            <div class="player-names">
+              <span class="player-name" id="homeName1-${court.id}">Hjemme 1</span>
+              <span class="player-name player-sub" id="homeName2-${court.id}"></span>
+            </div>
+            <div class="team-score">
+              <div class="score-box">
+                <span class="score-label">Point</span>
+                <span class="score-value" id="homePoints-${court.id}">–</span>
+              </div>
+              <div class="score-box">
+                <span class="score-label">Parti</span>
+                <span class="score-value" id="homeGames-${court.id}">–</span>
+              </div>
+              <div class="score-box">
+                <span class="score-label">Sæt</span>
+                <span class="score-value" id="homeSets-${court.id}">–</span>
+              </div>
+            </div>
           </div>
 
-          <div class="court-name-tag">
-            <span>${court.sponsor}</span>
-            <span class="court-status-tag" id="status-${court.id}">Opdaterer…</span>
+          <!-- Udehold -->
+          <div class="team team-away">
+            <div class="team-label">Ude</div>
+            <div class="player-names">
+              <span class="player-name" id="awayName1-${court.id}">Ude 1</span>
+              <span class="player-name player-sub" id="awayName2-${court.id}"></span>
+            </div>
+            <div class="team-score">
+              <div class="score-box">
+                <span class="score-label">Point</span>
+                <span class="score-value" id="awayPoints-${court.id}">–</span>
+              </div>
+              <div class="score-box">
+                <span class="score-label">Parti</span>
+                <span class="score-value" id="awayGames-${court.id}">–</span>
+              </div>
+              <div class="score-box">
+                <span class="score-label">Sæt</span>
+                <span class="score-value" id="awaySets-${court.id}">–</span>
+              </div>
+            </div>
           </div>
+        </div>
 
-          <div class="court-center-score">
-            <table class="score-table">
-              <thead>
-                <tr class="score-header-row">
-                  <th></th>
-                  <th>Point</th>
-                  <th>Parti</th>
-                  <th>Sæt</th>
-                </tr>
-              </thead>
-              <tbody>
-                <!-- Hjemme spiller 1 -->
-                <tr class="score-row">
-                  <td class="player-name-cell player-name-home" id="homeName1-${court.id}">Hjemme 1</td>
-                  <td class="score-cell">
-                    <span id="homePoints-${court.id}">–</span>
-                  </td>
-                  <td class="score-cell">
-                    <span id="homeGames-${court.id}">–</span>
-                  </td>
-                  <td class="score-cell">
-                    <span id="homeSets-${court.id}">–</span>
-                  </td>
-                </tr>
-                <!-- Hjemme spiller 2 (ingen tal, kun navn) -->
-                <tr class="score-row">
-                  <td class="player-name-cell player-name-home" id="homeName2-${court.id}"></td>
-                  <td class="score-cell score-sublabel"></td>
-                  <td class="score-cell score-sublabel"></td>
-                  <td class="score-cell score-sublabel"></td>
-                </tr>
-
-                <!-- Tom linje -->
-                <tr class="empty-row">
-                  <td colspan="4"></td>
-                </tr>
-
-                <!-- Ude spiller 1 -->
-                <tr class="score-row">
-                  <td class="player-name-cell player-name-away" id="awayName1-${court.id}">Ude 1</td>
-                  <td class="score-cell">
-                    <span id="awayPoints-${court.id}">–</span>
-                  </td>
-                  <td class="score-cell">
-                    <span id="awayGames-${court.id}">–</span>
-                  </td>
-                  <td class="score-cell">
-                    <span id="awaySets-${court.id}">–</span>
-                  </td>
-                </tr>
-                <!-- Ude spiller 2 (ingen tal, kun navn) -->
-                <tr class="score-row">
-                  <td class="player-name-cell player-name-away" id="awayName2-${court.id}"></td>
-                  <td class="score-cell score-sublabel"></td>
-                  <td class="score-cell score-sublabel"></td>
-                  <td class="score-cell score-sublabel"></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="court-footer-time">
-            Sidst opdateret: <span id="updated-${court.id}">–</span>
-          </div>
+        <div class="court-footer">
+          <span>Sidst opdateret: <span id="updated-${court.id}">–</span></span>
         </div>
       `;
 
-      grid.appendChild(card);
+      list.appendChild(card);
     });
 
     // Hent ALLE baner fra sky-API og opdater UI
