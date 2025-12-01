@@ -239,11 +239,15 @@ app.get("/api/adminState", (req, res) => {
 
 // ==== SCOREBOARD & VIEW: HENT ALLE BANER ====
 // GET /api/courts
+// ==== SCOREBOARD & VIEW: HENT ALLE BANER ====
+// GET /api/courts
 app.get("/api/courts", (req, res) => {
   const now = Date.now();
 
   const list = Object.values(courts).map(c => {
-    const online = now - c.lastUpdate < 10000; // 10 sek.
+    // ONLINE: har vi hørt fra banen inden for de sidste 5 minutter?
+    const diffMs = now - c.lastUpdate;
+    const online = diffMs < 5 * 60 * 1000; // 5 min
 
     // 1) start med basisnavne (fra controller)
     let effHome = c.homeName;
@@ -268,9 +272,27 @@ app.get("/api/courts", (req, res) => {
     if (fromHomeRoster) effHome = fromHomeRoster;
     if (fromAwayRoster) effAway = fromAwayRoster;
 
+    // 4) HAR VI OVERHOVEDET EN KAMP?
+    const hasMatchByPlayers =
+      c.homeIdx1 != null ||
+      c.homeIdx2 != null ||
+      c.awayIdx1 != null ||
+      c.awayIdx2 != null;
+
+    const hasMatchByScore =
+      c.homeGames > 0 ||
+      c.awayGames > 0 ||
+      c.homeSets > 0 ||
+      c.awaySets > 0 ||
+      c.homePoints > 0 ||
+      c.awayPoints > 0;
+
+    const hasMatch = hasMatchByPlayers || hasMatchByScore;
+
     return {
       ...c,
       online,
+      hasMatch,
       homeName: effHome,
       awayName: effAway,
     };
