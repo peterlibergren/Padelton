@@ -176,16 +176,17 @@
     /* Scoreboard-tabel i midten */
     .court-center-score {
       position: absolute;
-      top: 50%;
+      top: 52%;                  /* en anelse lavere i banen */
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 92%;
+      width: 80%;                /* smallere, så vi holder os inde i de hvide linjer */
       font-size: 0.8rem;
     }
 
     .score-table {
       width: 100%;
       border-collapse: collapse;
+      margin: 0 auto;
     }
 
     .score-header-row {
@@ -211,26 +212,26 @@
     }
 
     .player-name-cell {
-  text-align: left;
-  padding-right: 6px;
-  max-width: 50%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding-left: 14%;        /* 🚀 ryk navne væk fra baglinjen */
-  font-size: 0.95rem;       /* 🔥 større tekst */
-  line-height: 1.2;
-}
-
+      text-align: left;
+      padding-right: 6px;
+      max-width: 50%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding-left: 10%;       /* ryk navne tydeligt ind fra baglinien */
+      font-size: 1rem;         /* større tekst */
+      line-height: 1.2;
+    }
 
     .player-name-home {
-  color: #d1e8ff;  /* lys blå */
-}
+      color: #d1e8ff;  /* lys blå */
+      font-weight: 600;
+    }
 
-.player-name-away {
-  color: #ffd6d6;  /* lys rød */
-}
-
+    .player-name-away {
+      color: #ffd6d6;  /* lys rød */
+      font-weight: 600;
+    }
 
     .score-cell {
       text-align: right;
@@ -244,9 +245,8 @@
     }
 
     .empty-row td {
-  padding: 8px 0;   /* 🧘 mere luft mellem holdene */
-}
-
+      padding: 10px 0;   /* ekstra luft mellem hjemme- og udehold */
+    }
 
     .court-footer-time {
       position: absolute;
