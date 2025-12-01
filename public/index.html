@@ -211,21 +211,26 @@
     }
 
     .player-name-cell {
-      text-align: left;
-      padding-right: 4px;
-      max-width: 55%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
+  text-align: left;
+  padding-right: 6px;
+  max-width: 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-left: 14%;        /* 🚀 ryk navne væk fra baglinjen */
+  font-size: 0.95rem;       /* 🔥 større tekst */
+  line-height: 1.2;
+}
+
 
     .player-name-home {
-      font-weight: 600;
-    }
+  color: #d1e8ff;  /* lys blå */
+}
 
-    .player-name-away {
-      font-weight: 600;
-    }
+.player-name-away {
+  color: #ffd6d6;  /* lys rød */
+}
+
 
     .score-cell {
       text-align: right;
@@ -239,8 +244,9 @@
     }
 
     .empty-row td {
-      padding: 2px 0 4px;
-    }
+  padding: 8px 0;   /* 🧘 mere luft mellem holdene */
+}
+
 
     .court-footer-time {
       position: absolute;
