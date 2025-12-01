@@ -133,6 +133,7 @@
       background: transparent;
       border: none;
       padding-left: 0;
+      text-align: left;   /* <-- venstre-align tekst */
     }
 
     .team-label {
@@ -171,7 +172,7 @@
       opacity: 0.9;
     }
 
-    /* Sætkolonner (2 og 3) – færdige sæt senere */
+    /* Sætkolonner (2 og 3) – færdige sæt */
     .score-cell.set {
       font-weight: 600;
       color: #e5e7eb;
@@ -304,6 +305,42 @@
       list.appendChild(card);
     });
 
+    // Hjælper: lav set-score med evt. tiebreak-notation, fx 6(4)
+    function formatSetScore(isHome, setNumber, c) {
+      const homeKey = `set${setNumber}Home`;
+      const awayKey = `set${setNumber}Away`;
+      const loserPtsKey = `set${setNumber}LoserTbPoints`;
+      const loserIsHomeKey = `set${setNumber}LoserIsHome`;
+
+      const gHome = c[homeKey];
+      const gAway = c[awayKey];
+
+      // hvis vi ikke har begge tal, vis "–"
+      if (gHome === undefined || gAway === undefined) {
+        return "–";
+      }
+
+      const base = isHome ? gHome : gAway;
+
+      const loserTbPoints = c[loserPtsKey];
+      const loserIsHome = c[loserIsHomeKey];
+
+      // hvis vi slet ikke får TB-info, bare vis tallet
+      if (loserTbPoints === undefined || loserIsHome === undefined) {
+        return String(base);
+      }
+
+      const thisIsLoser = isHome ? loserIsHome : !loserIsHome;
+
+      // Hvis denne side er taber i tiebreak, vis fx 6(4)
+      if (thisIsLoser) {
+        return `${base}(${loserTbPoints})`;
+      }
+
+      // Vinder-side: bare tallet, fx 7
+      return String(base);
+    }
+
     // Hent ALLE baner fra sky-API og opdater UI
     async function updateAllCourts() {
       try {
@@ -360,6 +397,12 @@
           if (awayName1El) awayName1El.textContent = awayParts[0] || awayRaw || "Ude";
           if (awayName2El) awayName2El.textContent = awayParts[1] || "";
 
+          // Sæt 1 og 2
+          if (homeSet1El) homeSet1El.textContent = formatSetScore(true, 1, c);
+          if (awaySet1El) awaySet1El.textContent = formatSetScore(false, 1, c);
+          if (homeSet2El) homeSet2El.textContent = formatSetScore(true, 2, c);
+          if (awaySet2El) awaySet2El.textContent = formatSetScore(false, 2, c);
+
           // Point (tekst fra bane-ESP – 0,15,30,40,Ad eller tal i tiebreak)
           if (homePointsEl) {
             const hpStr = c.homePointsStr ?? null;
@@ -378,13 +421,6 @@
           // Aktuelle partier i igangværende sæt
           if (homeGamesEl) homeGamesEl.textContent = String(c.homeGames ?? 0);
           if (awayGamesEl) awayGamesEl.textContent = String(c.awayGames ?? 0);
-
-          // Sæt 1 og 2 – foreløbig tomme (–)
-          // Her kan vi senere indsætte fx "6" / "4" når vi har set-data i API'et
-          if (homeSet1El) homeSet1El.textContent = c.set1Home !== undefined ? String(c.set1Home) : "–";
-          if (awaySet1El) awaySet1El.textContent = c.set1Away !== undefined ? String(c.set1Away) : "–";
-          if (homeSet2El) homeSet2El.textContent = c.set2Home !== undefined ? String(c.set2Home) : "–";
-          if (awaySet2El) awaySet2El.textContent = c.set2Away !== undefined ? String(c.set2Away) : "–";
 
           // Tidsstempel (lokal tid)
           if (updatedEl) {
