@@ -342,12 +342,21 @@
           if (!statusEl) return;
 
           // Online/offline
-          statusEl.textContent = c.online ? "Online" : "Offline";
-          if (c.online) {
-            statusEl.classList.remove("error");
-          } else {
-            statusEl.classList.add("error");
-          }
+          // Kamp-status
+if (!c.hasMatch) {
+  // Ingen spillere/score => ingen kamp i gang
+  statusEl.textContent = "Ingen kamp";
+  statusEl.classList.remove("error");
+} else if (c.online) {
+  // Kamp + vi har set data for nylig
+  statusEl.textContent = "I gang";
+  statusEl.classList.remove("error");
+} else {
+  // Der BURDE være kamp, men vi har ikke fået data længe
+  statusEl.textContent = "Ingen forbindelse";
+  statusEl.classList.add("error");
+}
+
 
           // Holdnavne
           if (homeNameEl) homeNameEl.textContent = c.homeName || "Hjemme";
