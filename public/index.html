@@ -90,36 +90,64 @@
       color: #fecaca;
     }
 
-    /* Hold / spillere – NU ALTID OVER HINANDEN */
-    .teams {
+    /* ----- SCORE-TABEL (5 kolonner) ----- */
+
+    .score-table {
       display: flex;
-      flex-direction: column; /* altid vertikal */
-      gap: 10px;
+      flex-direction: column;
+      gap: 4px;
+      margin-top: 4px;
     }
 
-    .team {
+    .score-row {
       display: grid;
-      grid-template-columns: minmax(0, 2.2fr) minmax(0, 2fr);
-      column-gap: 8px;
-      row-gap: 4px;
+      grid-template-columns:
+        minmax(0, 3fr)   /* navne */
+        minmax(0, 0.9fr) /* sæt 1 */
+        minmax(0, 0.9fr) /* sæt 2 */
+        minmax(0, 1fr)   /* point */
+        minmax(0, 1fr);  /* partier */
+      gap: 4px;
+      align-items: stretch;
+    }
+
+    .score-cell {
+      padding: 4px 4px;
+      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(30, 64, 175, 0.5);
+      text-align: center;
+      font-size: 0.9rem;
+      display: flex;
       align-items: center;
+      justify-content: center;
+      min-height: 32px;
+      box-sizing: border-box;
+    }
+
+    /* Navne-kolonnen (venstre) */
+    .score-cell.names {
+      justify-content: flex-start;
+      flex-direction: column;
+      align-items: flex-start;
+      background: transparent;
+      border: none;
+      padding-left: 0;
     }
 
     .team-label {
-      grid-column: 1 / -1;
       font-size: 0.75rem;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      opacity: 0.8;
+      margin-bottom: 2px;
     }
 
-    /* Hjemmehold = grøn */
+    /* Rigtig grøn/rød til labels */
     .team-home .team-label {
-      color: #bbf7d0;
+      color: #22c55e; /* grøn */
     }
-
     .team-away .team-label {
-      color: #fecaca;
+      color: #ef4444; /* rød */
     }
 
     .player-names {
@@ -129,7 +157,6 @@
       overflow: hidden;
     }
 
-    /* Samme skriftstørrelse for spillerne */
     .player-name,
     .player-sub {
       font-size: clamp(0.95rem, 2.2vw, 1.05rem);
@@ -137,65 +164,34 @@
       white-space: nowrap;
       text-overflow: ellipsis;
       overflow: hidden;
+      color: #f9fafb; /* Hvid tekst til navne */
     }
 
     .player-sub {
-      opacity: 0.85;
+      opacity: 0.9;
     }
 
-    .team-home .player-name,
-    .team-home .player-sub {
-      color: #dcfce7;
+    /* Sætkolonner (2 og 3) – færdige sæt senere */
+    .score-cell.set {
       font-weight: 600;
+      color: #e5e7eb;
     }
 
-    .team-away .player-name,
-    .team-away .player-sub {
-      color: #fee2e2;
-      font-weight: 600;
+    /* Point-kolonne (4) – sort tekst på gul baggrund */
+    .score-cell.points {
+      background: #facc15; /* gul */
+      color: #111827;      /* næsten sort */
+      font-weight: 700;
+      border-color: #facc15;
     }
 
-    /* Score-bokse */
-    .team-score {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 4px;
-      font-size: 0.8rem;
+    /* Partier-kolonne (5) */
+    .score-cell.games {
+      font-weight: 700;
+      color: #e5e7eb;
+      border-color: rgba(148, 163, 184, 0.8);
     }
 
-    .score-box {
-      text-align: center;
-      padding: 4px 2px;
-      border-radius: 10px;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(148, 163, 184, 0.5);
-    }
-
-    .score-label {
-      display: block;
-      font-size: 0.65rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      opacity: 0.7;
-      margin-bottom: 2px;
-    }
-
-    .score-value {
-      display: block;
-      font-weight: 600;
-      font-size: 0.95rem;
-    }
-
-    /* Hjemmehold-score = grøn kant */
-    .team-home .score-box {
-      border-color: rgba(74, 222, 128, 0.9);
-    }
-
-    .team-away .score-box {
-      border-color: rgba(248, 113, 113, 0.8);
-    }
-
-    /* Footer på kortet */
     .court-footer {
       display: flex;
       justify-content: space-between;
@@ -218,7 +214,6 @@
       opacity: 0.8;
     }
 
-    /* Lille info-boks nederst (valgfri) */
     .info-card {
       max-width: 900px;
       margin: 0 auto 24px;
@@ -245,10 +240,8 @@
   </main>
 
   <script>
-    // I sky-versionen bruger vi samme origin, så BASE_URL er tom streng
     const BASE_URL = "";
 
-    // Baner – nu bare i rækkefølge 1,2,3,4,5
     const courts = [
       { id: 1, sponsor: "Bane 1 – BetaPack" },
       { id: 2, sponsor: "Bane 2 – Brdr. Thybo" },
@@ -271,51 +264,35 @@
           <span class="court-status-tag" id="status-${court.id}">Opdaterer…</span>
         </div>
 
-        <div class="teams">
-          <!-- Hjemmehold -->
-          <div class="team team-home">
-            <div class="team-label">Hjemme</div>
-            <div class="player-names">
-              <span class="player-name" id="homeName1-${court.id}">Hjemme 1</span>
-              <span class="player-sub" id="homeName2-${court.id}"></span>
-            </div>
-            <div class="team-score">
-              <div class="score-box">
-                <span class="score-label">Point</span>
-                <span class="score-value" id="homePoints-${court.id}">–</span>
-              </div>
-              <div class="score-box">
-                <span class="score-label">Parti</span>
-                <span class="score-value" id="homeGames-${court.id}">–</span>
-              </div>
-              <div class="score-box">
-                <span class="score-label">Sæt</span>
-                <span class="score-value" id="homeSets-${court.id}">–</span>
+        <div class="score-table">
+          <!-- Hjemmerække -->
+          <div class="score-row team-home">
+            <div class="score-cell names">
+              <div class="team-label">HJEMME</div>
+              <div class="player-names">
+                <span class="player-name" id="homeName1-${court.id}">Hjemme 1</span>
+                <span class="player-sub" id="homeName2-${court.id}"></span>
               </div>
             </div>
+            <div class="score-cell set" id="homeSet1-${court.id}">–</div>
+            <div class="score-cell set" id="homeSet2-${court.id}">–</div>
+            <div class="score-cell points" id="homePoints-${court.id}">–</div>
+            <div class="score-cell games" id="homeGames-${court.id}">–</div>
           </div>
 
-          <!-- Udehold -->
-          <div class="team team-away">
-            <div class="team-label">Ude</div>
-            <div class="player-names">
-              <span class="player-name" id="awayName1-${court.id}">Ude 1</span>
-              <span class="player-sub" id="awayName2-${court.id}"></span>
-            </div>
-            <div class="team-score">
-              <div class="score-box">
-                <span class="score-label">Point</span>
-                <span class="score-value" id="awayPoints-${court.id}">–</span>
-              </div>
-              <div class="score-box">
-                <span class="score-label">Parti</span>
-                <span class="score-value" id="awayGames-${court.id}">–</span>
-              </div>
-              <div class="score-box">
-                <span class="score-label">Sæt</span>
-                <span class="score-value" id="awaySets-${court.id}">–</span>
+          <!-- Uderække -->
+          <div class="score-row team-away">
+            <div class="score-cell names">
+              <div class="team-label">UDE</div>
+              <div class="player-names">
+                <span class="player-name" id="awayName1-${court.id}">Ude 1</span>
+                <span class="player-sub" id="awayName2-${court.id}"></span>
               </div>
             </div>
+            <div class="score-cell set" id="awaySet1-${court.id}">–</div>
+            <div class="score-cell set" id="awaySet2-${court.id}">–</div>
+            <div class="score-cell points" id="awayPoints-${court.id}">–</div>
+            <div class="score-cell games" id="awayGames-${court.id}">–</div>
           </div>
         </div>
 
@@ -344,12 +321,16 @@
           const homeName2El  = document.getElementById(`homeName2-${id}`);
           const awayName1El  = document.getElementById(`awayName1-${id}`);
           const awayName2El  = document.getElementById(`awayName2-${id}`);
+
+          const homeSet1El   = document.getElementById(`homeSet1-${id}`);
+          const homeSet2El   = document.getElementById(`homeSet2-${id}`);
+          const awaySet1El   = document.getElementById(`awaySet1-${id}`);
+          const awaySet2El   = document.getElementById(`awaySet2-${id}`);
+
           const homePointsEl = document.getElementById(`homePoints-${id}`);
           const awayPointsEl = document.getElementById(`awayPoints-${id}`);
           const homeGamesEl  = document.getElementById(`homeGames-${id}`);
           const awayGamesEl  = document.getElementById(`awayGames-${id}`);
-          const homeSetsEl   = document.getElementById(`homeSets-${id}`);
-          const awaySetsEl   = document.getElementById(`awaySets-${id}`);
           const updatedEl    = document.getElementById(`updated-${id}`);
 
           if (!statusEl) return; // banen findes ikke i layoutet
@@ -379,7 +360,7 @@
           if (awayName1El) awayName1El.textContent = awayParts[0] || awayRaw || "Ude";
           if (awayName2El) awayName2El.textContent = awayParts[1] || "";
 
-          // Point (tekst fra bane-ESP)
+          // Point (tekst fra bane-ESP – 0,15,30,40,Ad eller tal i tiebreak)
           if (homePointsEl) {
             const hpStr = c.homePointsStr ?? null;
             homePointsEl.textContent = (hpStr !== null && hpStr !== undefined)
@@ -394,15 +375,18 @@
               : String(c.awayPoints ?? "");
           }
 
-          // Partier
+          // Aktuelle partier i igangværende sæt
           if (homeGamesEl) homeGamesEl.textContent = String(c.homeGames ?? 0);
           if (awayGamesEl) awayGamesEl.textContent = String(c.awayGames ?? 0);
 
-          // Sæt
-          if (homeSetsEl) homeSetsEl.textContent = String(c.homeSets ?? 0);
-          if (awaySetsEl) awaySetsEl.textContent = String(c.awaySets ?? 0);
+          // Sæt 1 og 2 – foreløbig tomme (–)
+          // Her kan vi senere indsætte fx "6" / "4" når vi har set-data i API'et
+          if (homeSet1El) homeSet1El.textContent = c.set1Home !== undefined ? String(c.set1Home) : "–";
+          if (awaySet1El) awaySet1El.textContent = c.set1Away !== undefined ? String(c.set1Away) : "–";
+          if (homeSet2El) homeSet2El.textContent = c.set2Home !== undefined ? String(c.set2Home) : "–";
+          if (awaySet2El) awaySet2El.textContent = c.set2Away !== undefined ? String(c.set2Away) : "–";
 
-          // Tidsstempel
+          // Tidsstempel (lokal tid)
           if (updatedEl) {
             const now = new Date();
             const timeStr = now.toLocaleTimeString("da-DK", {
