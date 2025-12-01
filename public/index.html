@@ -90,21 +90,14 @@
       color: #fecaca;
     }
 
-    /* Hold / spillere */
+    /* Hold / spillere – NU ALTID OVER HINANDEN */
     .teams {
       display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    @media (min-width: 640px) {
-      .teams {
-        flex-direction: row;
-      }
+      flex-direction: column; /* altid vertikal */
+      gap: 10px;
     }
 
     .team {
-      flex: 1;
       display: grid;
       grid-template-columns: minmax(0, 2.2fr) minmax(0, 2fr);
       column-gap: 8px;
@@ -120,8 +113,9 @@
       opacity: 0.8;
     }
 
+    /* Hjemmehold = grøn */
     .team-home .team-label {
-      color: #bfdbfe;
+      color: #bbf7d0;
     }
 
     .team-away .team-label {
@@ -135,7 +129,9 @@
       overflow: hidden;
     }
 
-    .player-name {
+    /* Samme skriftstørrelse for spillerne */
+    .player-name,
+    .player-sub {
       font-size: clamp(0.95rem, 2.2vw, 1.05rem);
       line-height: 1.2;
       white-space: nowrap;
@@ -144,16 +140,17 @@
     }
 
     .player-sub {
-      font-size: 0.8rem;
-      opacity: 0.8;
+      opacity: 0.85;
     }
 
-    .team-home .player-name {
-      color: #dbeafe;
+    .team-home .player-name,
+    .team-home .player-sub {
+      color: #dcfce7;
       font-weight: 600;
     }
 
-    .team-away .player-name {
+    .team-away .player-name,
+    .team-away .player-sub {
       color: #fee2e2;
       font-weight: 600;
     }
@@ -189,8 +186,9 @@
       font-size: 0.95rem;
     }
 
+    /* Hjemmehold-score = grøn kant */
     .team-home .score-box {
-      border-color: rgba(96, 165, 250, 0.8);
+      border-color: rgba(74, 222, 128, 0.9);
     }
 
     .team-away .score-box {
@@ -279,7 +277,7 @@
             <div class="team-label">Hjemme</div>
             <div class="player-names">
               <span class="player-name" id="homeName1-${court.id}">Hjemme 1</span>
-              <span class="player-name player-sub" id="homeName2-${court.id}"></span>
+              <span class="player-sub" id="homeName2-${court.id}"></span>
             </div>
             <div class="team-score">
               <div class="score-box">
@@ -302,7 +300,7 @@
             <div class="team-label">Ude</div>
             <div class="player-names">
               <span class="player-name" id="awayName1-${court.id}">Ude 1</span>
-              <span class="player-name player-sub" id="awayName2-${court.id}"></span>
+              <span class="player-sub" id="awayName2-${court.id}"></span>
             </div>
             <div class="team-score">
               <div class="score-box">
