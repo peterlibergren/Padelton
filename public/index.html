@@ -173,10 +173,13 @@
       background: rgba(15, 23, 42, 0.9);
     }
 
-    /* Vinder-sæt (færdigspillede sæt) */
-    .set-winner {
-      font-weight: 900; /* ekstra fed så den popper */
-    }
+    /* Vinder-sæt (færdigspillede sæt) – grå baggrund i stedet for fed skrift */
+.set-winner {
+  background: rgba(75, 85, 99, 0.95);      /* mørk grå (ala slate-600) */
+  border-color: rgba(156, 163, 175, 0.95); /* lidt lysere kant */
+  color: #f9fafb;                          /* næsten hvid tekst */
+  /* ingen font-weight her → bruger samme som .score-set (600) */
+}
     
     /* Point-kolonne – gul med sort tekst */
     .score-points {
