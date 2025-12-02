@@ -39,7 +39,6 @@
       box-sizing: border-box;
     }
 
-    /* Liste med baner */
     .courts-list {
       display: flex;
       flex-direction: column;
@@ -48,7 +47,6 @@
       margin: 0 auto 16px;
     }
 
-    /* Court-kort */
     .court-card {
       background: rgba(15, 23, 42, 0.95);
       border-radius: 16px;
@@ -90,71 +88,56 @@
       color: #fecaca;
     }
 
-    /* ----- SCORE-TABEL (5 kolonner) ----- */
+    /* Teams-blok */
+    .teams {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
 
-    .score-table {
+    .team {
       display: flex;
       flex-direction: column;
       gap: 4px;
-      margin-top: 4px;
-    }
-
-    .score-row {
-      display: grid;
-      grid-template-columns:
-        minmax(0, 3fr)   /* navne */
-        minmax(0, 0.9fr) /* sæt 1 */
-        minmax(0, 0.9fr) /* sæt 2 */
-        minmax(0, 1fr)   /* point */
-        minmax(0, 1fr);  /* partier */
-      gap: 4px;
-      align-items: stretch;
-    }
-
-    .score-cell {
-      padding: 4px 4px;
-      border-radius: 8px;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(30, 64, 175, 0.5);
-      text-align: center;
-      font-size: 0.9rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 32px;
-      box-sizing: border-box;
-    }
-
-    /* Navne-kolonnen (venstre) */
-    .score-cell.names {
-      justify-content: flex-start;
-      flex-direction: column;
-      align-items: flex-start;
-      background: transparent;
-      border: none;
-      padding-left: 0;
-      text-align: left;   /* <-- venstre-align tekst */
     }
 
     .team-label {
-      font-size: 0.75rem;
+      font-size: 0.8rem;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 2px;
+      letter-spacing: 0.09em;
+      font-weight: 600;
     }
 
-    /* Rigtig grøn/rød til labels */
     .team-home .team-label {
-      color: #22c55e; /* grøn */
-    }
-    .team-away .team-label {
-      color: #ef4444; /* rød */
+      color: #22c55e; /* rigtig grøn */
     }
 
-    .player-names {
+    .team-away .team-label {
+      color: #ef4444; /* rigtig rød */
+    }
+
+    /* 5-kolonne layout: Navn | Sæt1 | Sæt2 | Point | Partier */
+    .score-row {
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) repeat(4, minmax(0, 1fr));
+      gap: 4px;
+      align-items: stretch;
+      font-size: clamp(0.9rem, 2.2vw, 1rem);
+    }
+
+    .score-cell {
+      padding: 4px 6px;
+      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      text-align: center;
+    }
+
+    .score-cell-name {
+      text-align: left; /* navne venstre-align */
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      justify-content: center;
       overflow: hidden;
     }
 
@@ -165,37 +148,38 @@
       white-space: nowrap;
       text-overflow: ellipsis;
       overflow: hidden;
-      color: #f9fafb; /* Hvid tekst til navne */
+      color: #e5e7eb; /* navne i hvid */
+      text-align: left; /* også her, bare for en sikkerheds skyld */
     }
 
     .player-sub {
       opacity: 0.9;
+      font-weight: 500;
     }
 
-    /* Sætkolonner (2 og 3) – færdige sæt */
-    .score-cell.set {
+    /* Sæt-kolonner */
+    .score-set {
       font-weight: 600;
-      color: #e5e7eb;
+      background: rgba(15, 23, 42, 0.9);
     }
 
-    /* Point-kolonne (4) – sort tekst på gul baggrund */
-    .score-cell.points {
-      background: #facc15; /* gul */
-      color: #111827;      /* næsten sort */
+    /* Point-kolonne – gul med sort tekst */
+    .score-points {
+      background: #facc15;
+      color: #111827;
       font-weight: 700;
-      border-color: #facc15;
     }
 
-    /* Partier-kolonne (5) */
-    .score-cell.games {
+    /* Partier-kolonne */
+    .score-games {
       font-weight: 700;
-      color: #e5e7eb;
-      border-color: rgba(148, 163, 184, 0.8);
+      background: rgba(30, 64, 175, 0.9);
+      border-color: rgba(129, 140, 248, 0.8);
     }
 
     .court-footer {
       display: flex;
-      justify-content: space-between;
+      justify-content: flex-end;
       align-items: center;
       font-size: 0.72rem;
       color: #cbd5f5;
@@ -205,14 +189,6 @@
       border-top: 1px dashed rgba(148, 163, 184, 0.4);
       padding-top: 4px;
       margin-top: 2px;
-    }
-
-    .court-footer span {
-      white-space: nowrap;
-    }
-
-    .court-footer span:last-child {
-      opacity: 0.8;
     }
 
     .info-card {
@@ -241,6 +217,7 @@
   </main>
 
   <script>
+    // HTML er hostet samme sted som API'et -> samme origin
     const BASE_URL = "";
 
     const courts = [
@@ -265,35 +242,35 @@
           <span class="court-status-tag" id="status-${court.id}">Opdaterer…</span>
         </div>
 
-        <div class="score-table">
-          <!-- Hjemmerække -->
-          <div class="score-row team-home">
-            <div class="score-cell names">
-              <div class="team-label">HJEMME</div>
-              <div class="player-names">
+        <div class="teams">
+          <!-- Hjemmehold -->
+          <div class="team team-home">
+            <div class="team-label">Hjemme</div>
+            <div class="score-row">
+              <div class="score-cell score-cell-name">
                 <span class="player-name" id="homeName1-${court.id}">Hjemme 1</span>
-                <span class="player-sub" id="homeName2-${court.id}"></span>
+                <span class="player-sub"  id="homeName2-${court.id}"></span>
               </div>
+              <div class="score-cell score-set" id="homeSet1-${court.id}">–</div>
+              <div class="score-cell score-set" id="homeSet2-${court.id}">–</div>
+              <div class="score-cell score-points" id="homePoints-${court.id}">–</div>
+              <div class="score-cell score-games"  id="homeGames-${court.id}">–</div>
             </div>
-            <div class="score-cell set" id="homeSet1-${court.id}">–</div>
-            <div class="score-cell set" id="homeSet2-${court.id}">–</div>
-            <div class="score-cell points" id="homePoints-${court.id}">–</div>
-            <div class="score-cell games" id="homeGames-${court.id}">–</div>
           </div>
 
-          <!-- Uderække -->
-          <div class="score-row team-away">
-            <div class="score-cell names">
-              <div class="team-label">UDE</div>
-              <div class="player-names">
+          <!-- Udehold -->
+          <div class="team team-away">
+            <div class="team-label">Ude</div>
+            <div class="score-row">
+              <div class="score-cell score-cell-name">
                 <span class="player-name" id="awayName1-${court.id}">Ude 1</span>
-                <span class="player-sub" id="awayName2-${court.id}"></span>
+                <span class="player-sub"  id="awayName2-${court.id}"></span>
               </div>
+              <div class="score-cell score-set" id="awaySet1-${court.id}">–</div>
+              <div class="score-cell score-set" id="awaySet2-${court.id}">–</div>
+              <div class="score-cell score-points" id="awayPoints-${court.id}">–</div>
+              <div class="score-cell score-games"  id="awayGames-${court.id}">–</div>
             </div>
-            <div class="score-cell set" id="awaySet1-${court.id}">–</div>
-            <div class="score-cell set" id="awaySet2-${court.id}">–</div>
-            <div class="score-cell points" id="awayPoints-${court.id}">–</div>
-            <div class="score-cell games" id="awayGames-${court.id}">–</div>
           </div>
         </div>
 
@@ -305,53 +282,46 @@
       list.appendChild(card);
     });
 
-    // Hjælper: lav set-score med evt. tiebreak-notation, fx 6(4)
-    function formatSetScore(isHome, setNumber, c) {
-      const homeKey = `set${setNumber}Home`;
-      const awayKey = `set${setNumber}Away`;
-      const loserPtsKey = `set${setNumber}LoserTbPoints`;
-      const loserIsHomeKey = `set${setNumber}LoserIsHome`;
+    // Hjælper: byg sætscore-strenge (fx "7(4)" for taber i TB)
+    function buildSetStrings(c, setIndex) {
+      const homeKey = setIndex === 1 ? "set1Home" : "set2Home";
+      const awayKey = setIndex === 1 ? "set1Away" : "set2Away";
+      const tbKey   = setIndex === 1 ? "set1LoserTbPoints" : "set2LoserTbPoints";
+      const lhKey   = setIndex === 1 ? "set1LoserIsHome"   : "set2LoserIsHome";
 
-  const gHome = c[homeKey];
-  const gAway = c[awayKey];
+      const h = c[homeKey];
+      const a = c[awayKey];
 
-  // hvis vi ikke har tal, eller de er -1 => ingen data endnu
-  if (
-    gHome === undefined ||
-    gAway === undefined ||
-    gHome === null ||
-    gAway === null ||
-    gHome < 0 ||
-    gAway < 0
-  ) {
-    return "–";
-  }
-
-  const base = isHome ? gHome : gAway;
-
-  const loserTbPoints = c[loserPtsKey];
-  const loserIsHome = c[loserIsHomeKey];
-
-  // ingen TB-info => bare tallet
-  if (
-    loserTbPoints === undefined ||
-    loserIsHome === undefined ||
-    loserTbPoints === null ||
-    loserTbPoints < 0
-  ) {
-    return String(base);
-  }
-
-
-      const thisIsLoser = isHome ? loserIsHome : !loserIsHome;
-
-      // Hvis denne side er taber i tiebreak, vis fx 6(4)
-      if (thisIsLoser) {
-        return `${base}(${loserTbPoints})`;
+      // Hvis sættet ikke er registreret, vis "–"
+      if (h == null || a == null || h < 0 || a < 0) {
+        return { home: "–", away: "–" };
       }
 
-      // Vinder-side: bare tallet, fx 7
-      return String(base);
+      const tb  = c[tbKey];
+      const lIsHome = !!c[lhKey];
+
+      // Ingen tie-break info -> bare rene tal
+      if (tb == null || tb < 0) {
+        return {
+          home: String(h),
+          away: String(a),
+        };
+      }
+
+      // Der var tie-break / match-tie, taber får parentes-score
+      if (lIsHome) {
+        // hjemmehold tabte sættet i TB
+        return {
+          home: `${h}(${tb})`,
+          away: String(a),
+        };
+      } else {
+        // udehold tabte sættet i TB
+        return {
+          home: String(h),
+          away: `${a}(${tb})`,
+        };
+      }
     }
 
     // Hent ALLE baner fra sky-API og opdater UI
@@ -366,6 +336,7 @@
 
         data.forEach(c => {
           const id = c.courtId;
+
           const statusEl     = document.getElementById(`status-${id}`);
           const homeName1El  = document.getElementById(`homeName1-${id}`);
           const homeName2El  = document.getElementById(`homeName2-${id}`);
@@ -381,12 +352,15 @@
           const awayPointsEl = document.getElementById(`awayPoints-${id}`);
           const homeGamesEl  = document.getElementById(`homeGames-${id}`);
           const awayGamesEl  = document.getElementById(`awayGames-${id}`);
+
           const updatedEl    = document.getElementById(`updated-${id}`);
 
           if (!statusEl) return; // banen findes ikke i layoutet
 
-          // Kamp-status baseret på hasMatch + online
-          if (!c.hasMatch) {
+          // Kamp-status (hvis din backend sender hasMatch; ellers kan vi falde tilbage)
+          const hasMatch = c.hasMatch !== undefined ? c.hasMatch : true;
+
+          if (!hasMatch) {
             statusEl.textContent = "Ingen kamp";
             statusEl.classList.remove("error");
           } else if (c.online) {
@@ -411,12 +385,15 @@
           if (awayName2El) awayName2El.textContent = awayParts[1] || "";
 
           // Sæt 1 og 2
-          if (homeSet1El) homeSet1El.textContent = formatSetScore(true, 1, c);
-          if (awaySet1El) awaySet1El.textContent = formatSetScore(false, 1, c);
-          if (homeSet2El) homeSet2El.textContent = formatSetScore(true, 2, c);
-          if (awaySet2El) awaySet2El.textContent = formatSetScore(false, 2, c);
+          const set1 = buildSetStrings(c, 1);
+          const set2 = buildSetStrings(c, 2);
 
-          // Point (tekst fra bane-ESP – 0,15,30,40,Ad eller tal i tiebreak)
+          if (homeSet1El) homeSet1El.textContent = set1.home;
+          if (awaySet1El) awaySet1El.textContent = set1.away;
+          if (homeSet2El) homeSet2El.textContent = set2.home;
+          if (awaySet2El) awaySet2El.textContent = set2.away;
+
+          // Point (brug tekststrenge fra bane-ESP, fx 0,15,30,40,Ad)
           if (homePointsEl) {
             const hpStr = c.homePointsStr ?? null;
             homePointsEl.textContent = (hpStr !== null && hpStr !== undefined)
@@ -431,11 +408,11 @@
               : String(c.awayPoints ?? "");
           }
 
-          // Aktuelle partier i igangværende sæt
+          // Partier
           if (homeGamesEl) homeGamesEl.textContent = String(c.homeGames ?? 0);
           if (awayGamesEl) awayGamesEl.textContent = String(c.awayGames ?? 0);
 
-          // Tidsstempel (lokal tid)
+          // Tidsstempel
           if (updatedEl) {
             const now = new Date();
             const timeStr = now.toLocaleTimeString("da-DK", {
