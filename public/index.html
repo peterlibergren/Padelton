@@ -116,46 +116,56 @@
       color: #ef4444; /* rigtig rød */
     }
 
-    /* 5-kolonne layout: Navn | Sæt1 | Sæt2 | Point | Partier */
-    .score-row {
-      display: grid;
-      grid-template-columns: minmax(0, 3fr) repeat(4, minmax(0, 1fr));
-      gap: 4px;
-      align-items: stretch;
-      font-size: clamp(0.9rem, 2.2vw, 1rem);
-    }
+/* 5-kolonne layout: Navn | Sæt1 | Sæt2 | Point | Partier */
+.score-row {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  align-items: stretch;
 
-    .score-cell {
-      padding: 4px 6px;
-      border-radius: 8px;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      text-align: center;
-    }
+  /* STØRRE TAL I SCORE-FELTERNE */
+  font-size: clamp(1.2rem, 3.2vw, 1.6rem);
+}
 
-    .score-cell-name {
-      text-align: left; /* navne venstre-align */
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      overflow: hidden;
-    }
+.score-cell {
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.5);
 
-    .player-name,
-    .player-sub {
-      font-size: clamp(0.95rem, 2.2vw, 1.05rem);
-      line-height: 1.2;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      overflow: hidden;
-      color: #e5e7eb; /* navne i hvid */
-      text-align: left; /* også her, bare for en sikkerheds skyld */
-    }
+  /* CENTRER TEKSTEN I BOKSEN (HOR & VERT) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
 
-    .player-sub {
-      opacity: 0.9;
-      font-weight: 500;
-    }
+/* Navnefeltet – venstrejusteret, men stadig vertikalt centreret */
+.score-cell-name {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  text-align: left;
+  overflow: hidden;
+}
+
+.player-name,
+.player-sub {
+  /* lidt mindre end tallene, så navne ikke fylder for meget */
+  font-size: clamp(0.9rem, 2.2vw, 1.1rem);
+  line-height: 1.2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  color: #e5e7eb;
+  text-align: left;
+}
+
+.player-sub {
+  opacity: 0.9;
+  font-weight: 500;
+}
 
     /* Sæt-kolonner */
     .score-set {
@@ -163,11 +173,17 @@
       background: rgba(15, 23, 42, 0.9);
     }
 
+    /* Vinder-sæt (færdigspillede sæt) */
+    .set-winner {
+      font-weight: 900; /* ekstra fed så den popper */
+    }
+    
     /* Point-kolonne – gul med sort tekst */
     .score-points {
       background: #facc15;
       color: #111827;
       font-weight: 700;
+      font-size: 1.2em; /* gør point en tand større end de andre */
     }
 
     /* Partier-kolonne */
@@ -384,14 +400,55 @@
           if (awayName1El) awayName1El.textContent = awayParts[0] || awayRaw || "Ude";
           if (awayName2El) awayName2El.textContent = awayParts[1] || "";
 
-          // Sæt 1 og 2
-          const set1 = buildSetStrings(c, 1);
-          const set2 = buildSetStrings(c, 2);
+// Sæt 1 og 2
+const set1 = buildSetStrings(c, 1);
+const set2 = buildSetStrings(c, 2);
 
-          if (homeSet1El) homeSet1El.textContent = set1.home;
-          if (awaySet1El) awaySet1El.textContent = set1.away;
-          if (homeSet2El) homeSet2El.textContent = set2.home;
-          if (awaySet2El) awaySet2El.textContent = set2.away;
+if (homeSet1El) homeSet1El.textContent = set1.home;
+if (awaySet1El) awaySet1El.textContent = set1.away;
+if (homeSet2El) homeSet2El.textContent = set2.home;
+if (awaySet2El) awaySet2El.textContent = set2.away;
+
+// --- RESET vinder-klasser ---
+if (homeSet1El) homeSet1El.classList.remove("set-winner");
+if (awaySet1El) awaySet1El.classList.remove("set-winner");
+if (homeSet2El) homeSet2El.classList.remove("set-winner");
+if (awaySet2El) awaySet2El.classList.remove("set-winner");
+
+// --- FIND VINDER I SÆT 1 ---
+const s1hVal = c.set1Home;
+const s1aVal = c.set1Away;
+if (
+  typeof s1hVal === "number" &&
+  typeof s1aVal === "number" &&
+  s1hVal >= 0 &&
+  s1aVal >= 0 &&
+  s1hVal !== s1aVal
+) {
+  if (s1hVal > s1aVal) {
+    homeSet1El && homeSet1El.classList.add("set-winner");
+  } else {
+    awaySet1El && awaySet1El.classList.add("set-winner");
+  }
+}
+
+// --- FIND VINDER I SÆT 2 ---
+const s2hVal = c.set2Home;
+const s2aVal = c.set2Away;
+if (
+  typeof s2hVal === "number" &&
+  typeof s2aVal === "number" &&
+  s2hVal >= 0 &&
+  s2aVal >= 0 &&
+  s2hVal !== s2aVal
+) {
+  if (s2hVal > s2aVal) {
+    homeSet2El && homeSet2El.classList.add("set-winner");
+  } else {
+    awaySet2El && awaySet2El.classList.add("set-winner");
+  }
+}
+
 
           // Point (brug tekststrenge fra bane-ESP, fx 0,15,30,40,Ad)
           if (homePointsEl) {
