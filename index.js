@@ -33,7 +33,7 @@ for (let i = 1; i <= 5; i++) {
     awayIdx1: null,
     awayIdx2: null,
 
-    // Score
+    // Aktuel score
     homePoints: 0,
     awayPoints: 0,
     homePointsStr: "0",
@@ -42,6 +42,21 @@ for (let i = 1; i <= 5; i++) {
     awayGames: 0,
     homeSets: 0,
     awaySets: 0,
+
+    // NYT: set-historik (fra controlleren)
+    // -1 betyder "ikke sat / ikke spillet"
+    set1Home: -1,
+    set1Away: -1,
+    set1LoserTbPoints: -1,
+    set1LoserIsHome: false,
+
+    set2Home: -1,
+    set2Away: -1,
+    set2LoserTbPoints: -1,
+    set2LoserIsHome: false,
+
+    // valgfri fritekst, hvis du vil bruge den senere
+    setsStr: "",
 
     online: false,
     lastUpdate: 0,
@@ -54,7 +69,7 @@ function buildNameFromIndices(side, idx1, idx2) {
   const names = [];
 
   const indices = [idx1, idx2];
-  indices.forEach(idx => {
+  indices.forEach((idx) => {
     if (typeof idx === "number" && idx >= 1 && idx <= MAX_PLAYERS) {
       const n = list[idx - 1];
       if (n && n.trim().length > 0) {
@@ -83,6 +98,19 @@ app.post("/api/updateScore", (req, res) => {
     awayGames,
     homeSets,
     awaySets,
+
+    // NYT: set-felter fra controller
+    set1Home,
+    set1Away,
+    set1LoserTbPoints,
+    set1LoserIsHome,
+    set2Home,
+    set2Away,
+    set2LoserTbPoints,
+    set2LoserIsHome,
+
+    // valgfri samlet streng
+    setsStr,
   } = req.body || {};
 
   if (!courtId || courtId < 1 || courtId > 5) {
@@ -105,6 +133,44 @@ app.post("/api/updateScore", (req, res) => {
   if (homeSets !== undefined) c.homeSets = homeSets;
   if (awaySets !== undefined) c.awaySets = awaySets;
 
+  // NYT: set-historik (konverter til tal/bool)
+  function toIntOrDefault(v, def) {
+    if (v === undefined || v === null || v === "") return def;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : def;
+  }
+
+  function toBool(v, def) {
+    if (v === undefined || v === null) return def;
+    if (typeof v === "boolean") return v;
+    if (typeof v === "number") return v !== 0;
+    if (typeof v === "string") {
+      const s = v.toLowerCase();
+      if (s === "true" || s === "1" || s === "yes") return true;
+      if (s === "false" || s === "0" || s === "no") return false;
+    }
+    return def;
+  }
+
+  if (set1Home !== undefined) c.set1Home = toIntOrDefault(set1Home, -1);
+  if (set1Away !== undefined) c.set1Away = toIntOrDefault(set1Away, -1);
+  if (set1LoserTbPoints !== undefined)
+    c.set1LoserTbPoints = toIntOrDefault(set1LoserTbPoints, -1);
+  if (set1LoserIsHome !== undefined)
+    c.set1LoserIsHome = toBool(set1LoserIsHome, false);
+
+  if (set2Home !== undefined) c.set2Home = toIntOrDefault(set2Home, -1);
+  if (set2Away !== undefined) c.set2Away = toIntOrDefault(set2Away, -1);
+  if (set2LoserTbPoints !== undefined)
+    c.set2LoserTbPoints = toIntOrDefault(set2LoserTbPoints, -1);
+  if (set2LoserIsHome !== undefined)
+    c.set2LoserIsHome = toBool(set2LoserIsHome, false);
+
+  if (setsStr !== undefined) {
+    c.setsStr =
+      typeof setsStr === "string" ? setsStr : setsStr != null ? String(setsStr) : "";
+  }
+
   c.lastUpdate = Date.now();
   c.online = true;
 
@@ -112,7 +178,7 @@ app.post("/api/updateScore", (req, res) => {
 });
 
 // ==== (VALGFRI) DIREKTE ADMIN-NAVNE pr. bane ====
-// POST /api/setNames  (fra tidligere løsning – vi lader den leve)
+// POST /api/setNames
 app.post("/api/setNames", (req, res) => {
   const { courtId, homeName, awayName } = req.body || {};
 
@@ -144,9 +210,8 @@ app.post("/api/setNames", (req, res) => {
   });
 });
 
-// ==== NYT: ADMIN — GEM SPILLER-LISTER ====
+// ==== ADMIN — GEM SPILLER-LISTER ====
 // POST /api/setRoster
-// body: { homePlayers: [str...], awayPlayers: [str...] }
 app.post("/api/setRoster", (req, res) => {
   const body = req.body || {};
   const hp = Array.isArray(body.homePlayers) ? body.homePlayers : [];
@@ -170,9 +235,8 @@ app.post("/api/setRoster", (req, res) => {
   });
 });
 
-// ==== NYT: ADMIN — SÆT HVELE SPILLERE SPILLER PÅ EN BANE ====
+// ==== ADMIN — SÆT HVILKE SPILLERE SPILLER PÅ EN BANE ====
 // POST /api/setCourtPlayers
-// body: { courtId, homeIdx1, homeIdx2, awayIdx1, awayIdx2 }
 app.post("/api/setCourtPlayers", (req, res) => {
   const { courtId, homeIdx1, homeIdx2, awayIdx1, awayIdx2 } = req.body || {};
 
@@ -216,11 +280,10 @@ app.post("/api/setCourtPlayers", (req, res) => {
   });
 });
 
-// ==== NYT: ADMIN — HENT HELE ADMIN-STATE ====
+// ==== ADMIN — HENT HELE ADMIN-STATE ====
 // GET /api/adminState
-// Bruges af admin.html til at udfylde felter og dropdowns
 app.get("/api/adminState", (req, res) => {
-  const courtsAdmin = Object.values(courts).map(c => ({
+  const courtsAdmin = Object.values(courts).map((c) => ({
     courtId: c.courtId,
     adminHomeName: c.adminHomeName,
     adminAwayName: c.adminAwayName,
@@ -239,12 +302,10 @@ app.get("/api/adminState", (req, res) => {
 
 // ==== SCOREBOARD & VIEW: HENT ALLE BANER ====
 // GET /api/courts
-// ==== SCOREBOARD & VIEW: HENT ALLE BANER ====
-// GET /api/courts
 app.get("/api/courts", (req, res) => {
   const now = Date.now();
 
-  const list = Object.values(courts).map(c => {
+  const list = Object.values(courts).map((c) => {
     // ONLINE: har vi hørt fra banen inden for de sidste 5 minutter?
     const diffMs = now - c.lastUpdate;
     const online = diffMs < 5 * 60 * 1000; // 5 min
