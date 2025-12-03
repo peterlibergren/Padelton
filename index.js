@@ -288,8 +288,6 @@ app.post("/api/setCourtPlayers", (req, res) => {
   });
 });
 
-// ==== LUNAR — GEM OPSÆTNING (ON/OFF + BANER) ====
-// POST /api/setLunarConfig
 // ==== LUNAR — GEM OPSÆTNING (ON/OFF + BANER + SUPER MATCH-TIE) ====
 // POST /api/setLunarConfig
 app.post("/api/setLunarConfig", (req, res) => {
