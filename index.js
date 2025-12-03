@@ -63,6 +63,13 @@ for (let i = 1; i <= 5; i++) {
   };
 }
 
+// ==== LUNAR-STATE (i RAM) ====
+// Om LUNAR-format er aktivt, hvilke baner der er valgt, og spillerpar for runde 1 og 2
+let lunarEnabled = false;      // true/false
+let lunarCourts = [];          // fx [1,2,3]
+let lunarRound1 = [];          // [{ courtId, homeIdx1, homeIdx2, awayIdx1, awayIdx2 }, ...]
+let lunarRound2 = [];          // samme struktur som runde 1
+
 // ==== HJÆLPER: lav "Peter / Lars" ud fra indices ====
 function buildNameFromIndices(side, idx1, idx2) {
   const list = side === "home" ? homePlayers : awayPlayers;
@@ -235,7 +242,7 @@ app.post("/api/setRoster", (req, res) => {
   });
 });
 
-// ==== ADMIN — SÆT HVILKE SPILLERE SPILLER PÅ EN BANE ====
+// ==== ADMIN — SÆT HVILKE SPILLERE SPILLER PÅ EN BANE (STANDARD) ====
 // POST /api/setCourtPlayers
 app.post("/api/setCourtPlayers", (req, res) => {
   const { courtId, homeIdx1, homeIdx2, awayIdx1, awayIdx2 } = req.body || {};
@@ -280,6 +287,92 @@ app.post("/api/setCourtPlayers", (req, res) => {
   });
 });
 
+// ==== LUNAR — GEM OPSÆTNING (ON/OFF + BANER) ====
+// POST /api/setLunarConfig
+app.post("/api/setLunarConfig", (req, res) => {
+  const body = req.body || {};
+  const { lunarEnabled: enabledFromClient, lunarCourts: courtsFromClient } = body;
+
+  lunarEnabled = !!enabledFromClient;
+
+  if (Array.isArray(courtsFromClient)) {
+    lunarCourts = courtsFromClient
+      .map(Number)
+      .filter((n) => Number.isFinite(n) && n >= 1 && n <= 5);
+  } else {
+    lunarCourts = [];
+  }
+
+  // Her kunne du evt. trimme til max 3 baner:
+  // lunarCourts = lunarCourts.slice(0, 3);
+
+  console.log("[LUNAR CONFIG] enabled:", lunarEnabled, "courts:", lunarCourts);
+
+  return res.json({
+    status: "ok",
+    lunarEnabled,
+    lunarCourts,
+  });
+});
+
+// ==== LUNAR — GEM SPILLERPAR PR. BANE & RUNDE ====
+// POST /api/setLunarCourtPlayers
+app.post("/api/setLunarCourtPlayers", (req, res) => {
+  const { round, courtId, homeIdx1, homeIdx2, awayIdx1, awayIdx2 } = req.body || {};
+
+  const r = Number(round);
+  const cid = Number(courtId);
+
+  if (r !== 1 && r !== 2) {
+    return res.status(400).json({ error: "round skal være 1 eller 2" });
+  }
+  if (!cid || cid < 1 || cid > 5) {
+    return res.status(400).json({ error: "Invalid courtId" });
+  }
+
+  // Tillad null eller 1..16 (samme logik som ovenfor)
+  function normIdx(v) {
+    if (v === null || v === undefined || v === "" || v === 0) return null;
+    const num = Number(v);
+    if (!Number.isFinite(num)) return null;
+    if (num < 1 || num > MAX_PLAYERS) return null;
+    return num;
+  }
+
+  const targetArray = r === 1 ? lunarRound1 : lunarRound2;
+
+  let entry = targetArray.find((c) => c.courtId === cid);
+  if (!entry) {
+    entry = { courtId: cid };
+    targetArray.push(entry);
+  }
+
+  entry.homeIdx1 = normIdx(homeIdx1);
+  entry.homeIdx2 = normIdx(homeIdx2);
+  entry.awayIdx1 = normIdx(awayIdx1);
+  entry.awayIdx2 = normIdx(awayIdx2);
+
+  console.log(
+    `[LUNAR ROUND ${r}] court ${cid}:`,
+    "Hjemme:",
+    entry.homeIdx1,
+    entry.homeIdx2,
+    "| Ude:",
+    entry.awayIdx1,
+    entry.awayIdx2
+  );
+
+  return res.json({
+    status: "ok",
+    round: r,
+    courtId: cid,
+    homeIdx1: entry.homeIdx1,
+    homeIdx2: entry.homeIdx2,
+    awayIdx1: entry.awayIdx1,
+    awayIdx2: entry.awayIdx2,
+  });
+});
+
 // ==== ADMIN — HENT HELE ADMIN-STATE ====
 // GET /api/adminState
 app.get("/api/adminState", (req, res) => {
@@ -297,6 +390,10 @@ app.get("/api/adminState", (req, res) => {
     homePlayers,
     awayPlayers,
     courts: courtsAdmin,
+    lunarEnabled,
+    lunarCourts,
+    lunarRound1,
+    lunarRound2,
   });
 });
 
