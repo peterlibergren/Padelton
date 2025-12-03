@@ -361,3 +361,243 @@
 
       // Der var tie-break / match-tie, taber får parentes-score
       if (lIsHome) {
+        // hjemmehold tabte sættet i TB
+        return {
+          home: `${h}(${tb})`,
+          away: String(a),
+        };
+      } else {
+        // udehold tabte sættet i TB
+        return {
+          home: String(h),
+          away: `${a}(${tb})`,
+        };
+      }
+    }
+
+    // NYT: opdater samlet LUNAR-stilling
+    function updateTeamStanding(courtsData, lunarEnabled, lunarCourts) {
+      const standingEl = document.getElementById("teamStanding");
+      const homeSpan = document.getElementById("standingHome");
+      const awaySpan = document.getElementById("standingAway");
+
+      if (!standingEl || !homeSpan || !awaySpan) return;
+
+      const active = !!lunarEnabled && Array.isArray(lunarCourts) && lunarCourts.length > 0;
+
+      if (!active) {
+        standingEl.classList.add("hidden");
+        homeSpan.textContent = "0";
+        awaySpan.textContent = "0";
+        return;
+      }
+
+      let homeWins = 0;
+      let awayWins = 0;
+
+      courtsData.forEach(c => {
+        if (!lunarCourts.includes(c.courtId)) return;
+
+        const hs = typeof c.homeSets === "number" ? c.homeSets : 0;
+        const as = typeof c.awaySets === "number" ? c.awaySets : 0;
+
+        // Antagelse: 1 sæt = 1 vunden kamp i LUNAR-formatet
+        homeWins += hs;
+        awayWins += as;
+      });
+
+      homeSpan.textContent = String(homeWins);
+      awaySpan.textContent = String(awayWins);
+      standingEl.classList.remove("hidden");
+    }
+
+    // Hent adminState + ALLE baner og opdater UI
+    async function updateAllCourts() {
+      try {
+        const [adminResp, courtsResp] = await Promise.all([
+          fetch(BASE_URL + "/api/adminState", { cache: "no-store" }),
+          fetch(BASE_URL + "/api/courts", { cache: "no-store" }),
+        ]);
+
+        if (!adminResp.ok) {
+          throw new Error("HTTP adminState " + adminResp.status);
+        }
+        if (!courtsResp.ok) {
+          throw new Error("HTTP courts " + courtsResp.status);
+        }
+
+        const adminState = await adminResp.json();
+        const data = await courtsResp.json(); // array med court-objekter
+
+        const lunarEnabled = !!adminState.lunarEnabled;
+        const lunarCourts = Array.isArray(adminState.lunarCourts)
+          ? adminState.lunarCourts.map(Number)
+          : [];
+
+        // Skjul/vis banekort efter LUNAR-opsætning
+        courts.forEach(court => {
+          const cardEl = document.getElementById(`court-${court.id}`);
+          if (!cardEl) return;
+
+          if (lunarEnabled && lunarCourts.length > 0) {
+            cardEl.style.display = lunarCourts.includes(court.id) ? "" : "none";
+          } else {
+            cardEl.style.display = "";
+          }
+        });
+
+        data.forEach(c => {
+          const id = c.courtId;
+
+          const statusEl     = document.getElementById(`status-${id}`);
+          const homeName1El  = document.getElementById(`homeName1-${id}`);
+          const homeName2El  = document.getElementById(`homeName2-${id}`);
+          const awayName1El  = document.getElementById(`awayName1-${id}`);
+          const awayName2El  = document.getElementById(`awayName2-${id}`);
+
+          const homeSet1El   = document.getElementById(`homeSet1-${id}`);
+          const homeSet2El   = document.getElementById(`homeSet2-${id}`);
+          const awaySet1El   = document.getElementById(`awaySet1-${id}`);
+          const awaySet2El   = document.getElementById(`awaySet2-${id}`);
+
+          const homePointsEl = document.getElementById(`homePoints-${id}`);
+          const awayPointsEl = document.getElementById(`awayPoints-${id}`);
+          const homeGamesEl  = document.getElementById(`homeGames-${id}`);
+          const awayGamesEl  = document.getElementById(`awayGames-${id}`);
+
+          const updatedEl    = document.getElementById(`updated-${id}`);
+
+          if (!statusEl) return; // banen findes ikke i layoutet
+
+          // Kamp-status (hvis din backend sender hasMatch; ellers kan vi falde tilbage)
+          const hasMatch = c.hasMatch !== undefined ? c.hasMatch : true;
+
+          if (!hasMatch) {
+            statusEl.textContent = "Ingen kamp";
+            statusEl.classList.remove("error");
+          } else if (c.online) {
+            statusEl.textContent = "I gang";
+            statusEl.classList.remove("error");
+          } else {
+            statusEl.textContent = "Ingen forbindelse";
+            statusEl.classList.add("error");
+          }
+
+          // Holdnavne -> split til spiller 1/2
+          const homeRaw = c.homeName || "Hjemme";
+          const awayRaw = c.awayName || "Ude";
+
+          const homeParts = homeRaw.split("/").map(s => s.trim()).filter(Boolean);
+          const awayParts = awayRaw.split("/").map(s => s.trim()).filter(Boolean);
+
+          if (homeName1El) homeName1El.textContent = homeParts[0] || homeRaw || "Hjemme";
+          if (homeName2El) homeName2El.textContent = homeParts[1] || "";
+
+          if (awayName1El) awayName1El.textContent = awayParts[0] || awayRaw || "Ude";
+          if (awayName2El) awayName2El.textContent = awayParts[1] || "";
+
+          // Sæt 1 og 2
+          const set1 = buildSetStrings(c, 1);
+          const set2 = buildSetStrings(c, 2);
+
+          if (homeSet1El) homeSet1El.textContent = set1.home;
+          if (awaySet1El) awaySet1El.textContent = set1.away;
+          if (homeSet2El) homeSet2El.textContent = set2.home;
+          if (awaySet2El) awaySet2El.textContent = set2.away;
+
+          // --- RESET vinder-klasser ---
+          if (homeSet1El) homeSet1El.classList.remove("set-winner");
+          if (awaySet1El) awaySet1El.classList.remove("set-winner");
+          if (homeSet2El) homeSet2El.classList.remove("set-winner");
+          if (awaySet2El) awaySet2El.classList.remove("set-winner");
+
+          // --- FIND VINDER I SÆT 1 ---
+          const s1hVal = c.set1Home;
+          const s1aVal = c.set1Away;
+          if (
+            typeof s1hVal === "number" &&
+            typeof s1aVal === "number" &&
+            s1hVal >= 0 &&
+            s1aVal >= 0 &&
+            s1hVal !== s1aVal
+          ) {
+            if (s1hVal > s1aVal) {
+              homeSet1El && homeSet1El.classList.add("set-winner");
+            } else {
+              awaySet1El && awaySet1El.classList.add("set-winner");
+            }
+          }
+
+          // --- FIND VINDER I SÆT 2 ---
+          const s2hVal = c.set2Home;
+          const s2aVal = c.set2Away;
+          if (
+            typeof s2hVal === "number" &&
+            typeof s2aVal === "number" &&
+            s2hVal >= 0 &&
+            s2aVal >= 0 &&
+            s2hVal !== s2aVal
+          ) {
+            if (s2hVal > s2aVal) {
+              homeSet2El && homeSet2El.classList.add("set-winner");
+            } else {
+              awaySet2El && awaySet2El.classList.add("set-winner");
+            }
+          }
+
+          // Point (brug tekststrenge fra bane-ESP, fx 0,15,30,40,Ad)
+          if (homePointsEl) {
+            const hpStr = c.homePointsStr ?? null;
+            homePointsEl.textContent = (hpStr !== null && hpStr !== undefined)
+              ? hpStr
+              : String(c.homePoints ?? "");
+          }
+
+          if (awayPointsEl) {
+            const apStr = c.awayPointsStr ?? null;
+            awayPointsEl.textContent = (apStr !== null && apStr !== undefined)
+              ? apStr
+              : String(c.awayPoints ?? "");
+          }
+
+          // Partier
+          if (homeGamesEl) homeGamesEl.textContent = String(c.homeGames ?? 0);
+          if (awayGamesEl) awayGamesEl.textContent = String(c.awayGames ?? 0);
+
+          // Tidsstempel
+          if (updatedEl) {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString("da-DK", {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            });
+            updatedEl.textContent = timeStr;
+          }
+        });
+
+        // Opdater samlet LUNAR-stilling
+        updateTeamStanding(data, lunarEnabled, lunarCourts);
+      } catch (err) {
+        console.error("Fejl ved hentning af courts/adminState:", err);
+        // Hvis API ikke svarer, markér alle som "Ingen forbindelse"
+        courts.forEach(court => {
+          const statusEl = document.getElementById(`status-${court.id}`);
+          if (statusEl) {
+            statusEl.textContent = "Ingen forbindelse";
+            statusEl.classList.add("error");
+          }
+        });
+
+        // Skjul stilling
+        const standingEl = document.getElementById("teamStanding");
+        if (standingEl) standingEl.classList.add("hidden");
+      }
+    }
+
+    // Første opdatering + interval
+    updateAllCourts();
+    setInterval(updateAllCourts, 1000);
+  </script>
+</body>
+</html>
