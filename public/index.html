@@ -501,6 +501,29 @@ courts.forEach(court => {
   }
 });
 
+        // Beregn nuværende LUNAR-stilling (til at styre SUPER MATCH-TIE)
+let homeWinsForSuper = 0;
+let awayWinsForSuper = 0;
+
+if (lunarEnabled && Array.isArray(lunarCourts) && lunarCourts.length > 0) {
+  data.forEach(c => {
+    if (!lunarCourts.includes(c.courtId)) return;
+
+    const hs = typeof c.homeSets === "number" ? c.homeSets : 0;
+    const as = typeof c.awaySets === "number" ? c.awaySets : 0;
+
+    homeWinsForSuper += hs;
+    awayWinsForSuper += as;
+  });
+}
+
+const superShouldBeVisible =
+  lunarEnabled &&
+  Array.isArray(lunarCourts) &&
+  lunarCourts.length > 0 &&
+  homeWinsForSuper === 3 &&
+  awayWinsForSuper === 3;
+
 
         data.forEach(c => {
           const id = c.courtId;
@@ -523,14 +546,18 @@ courts.forEach(court => {
 
           const updatedEl    = document.getElementById(`updated-${id}`);
 
-          const lunarBadgeEl = document.getElementById(`lunarBadge-${id}`);
+ const lunarBadgeEl = document.getElementById(`lunarBadge-${id}`);
 const superBadgeEl = document.getElementById(`superBadge-${id}`);
 
 // LUNAR badge + runde
 if (lunarBadgeEl) {
   if (c.isLunar) {
     lunarBadgeEl.classList.remove("hidden");
-    if (c.lunarRoundUsed === 1 || c.lunarRoundUsed === 2) {
+
+    if (c.isSuperMatchTie && superShouldBeVisible) {
+      // 7. kamp: altid bare "LUNAR"
+      lunarBadgeEl.textContent = "LUNAR";
+    } else if (c.lunarRoundUsed === 1 || c.lunarRoundUsed === 2) {
       lunarBadgeEl.textContent = `LUNAR R${c.lunarRoundUsed}`;
     } else {
       lunarBadgeEl.textContent = "LUNAR";
@@ -542,7 +569,7 @@ if (lunarBadgeEl) {
 
 // SUPER MATCH-TIE badge
 if (superBadgeEl) {
-  if (c.isSuperMatchTie) {
+  if (c.isSuperMatchTie && superShouldBeVisible) {
     superBadgeEl.classList.remove("hidden");
   } else {
     superBadgeEl.classList.add("hidden");
