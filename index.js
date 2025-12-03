@@ -411,20 +411,52 @@ app.get("/api/courts", (req, res) => {
     let effHome = c.homeName;
     let effAway = c.awayName;
 
-    // 2) admin-fritekst overskriver
+    // ==== NYT: find evt. LUNAR-indekser for denne bane ====
+    let usedHomeIdx1 = c.homeIdx1;
+    let usedHomeIdx2 = c.homeIdx2;
+    let usedAwayIdx1 = c.awayIdx1;
+    let usedAwayIdx2 = c.awayIdx2;
+
+    if (lunarEnabled && Array.isArray(lunarCourts) && lunarCourts.includes(c.courtId)) {
+      // prøv først at finde entry i runde 2, ellers runde 1
+      let r2 = Array.isArray(lunarRound2)
+        ? lunarRound2.find(e => e.courtId === c.courtId)
+        : null;
+      let r1 = Array.isArray(lunarRound1)
+        ? lunarRound1.find(e => e.courtId === c.courtId)
+        : null;
+
+      const hasR2 =
+        r2 &&
+        (r2.homeIdx1 != null || r2.homeIdx2 != null || r2.awayIdx1 != null || r2.awayIdx2 != null);
+      const hasR1 =
+        r1 &&
+        (r1.homeIdx1 != null || r1.homeIdx2 != null || r1.awayIdx1 != null || r1.awayIdx2 != null);
+
+      const src = hasR2 ? r2 : hasR1 ? r1 : null;
+
+      if (src) {
+        usedHomeIdx1 = src.homeIdx1 ?? null;
+        usedHomeIdx2 = src.homeIdx2 ?? null;
+        usedAwayIdx1 = src.awayIdx1 ?? null;
+        usedAwayIdx2 = src.awayIdx2 ?? null;
+      }
+    }
+
+    // 2) admin-fritekst overskriver basisnavne
     if (c.adminHomeName) effHome = c.adminHomeName;
     if (c.adminAwayName) effAway = c.adminAwayName;
 
     // 3) spillerliste-assignments overskriver begge dele, hvis sat
     const fromHomeRoster = buildNameFromIndices(
       "home",
-      c.homeIdx1,
-      c.homeIdx2
+      usedHomeIdx1,
+      usedHomeIdx2
     );
     const fromAwayRoster = buildNameFromIndices(
       "away",
-      c.awayIdx1,
-      c.awayIdx2
+      usedAwayIdx1,
+      usedAwayIdx2
     );
 
     if (fromHomeRoster) effHome = fromHomeRoster;
@@ -432,10 +464,10 @@ app.get("/api/courts", (req, res) => {
 
     // 4) HAR VI OVERHOVEDET EN KAMP?
     const hasMatchByPlayers =
-      c.homeIdx1 != null ||
-      c.homeIdx2 != null ||
-      c.awayIdx1 != null ||
-      c.awayIdx2 != null;
+      usedHomeIdx1 != null ||
+      usedHomeIdx2 != null ||
+      usedAwayIdx1 != null ||
+      usedAwayIdx2 != null;
 
     const hasMatchByScore =
       c.homeGames > 0 ||
@@ -458,6 +490,7 @@ app.get("/api/courts", (req, res) => {
 
   res.json(list);
 });
+
 
 // ==== STATISKE FILER (index.html, view.html, admin.html, ...) ====
 app.use(express.static(path.join(__dirname, "public")));
