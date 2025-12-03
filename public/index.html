@@ -34,20 +34,32 @@
     }
 
     /* NYT: Stilling-linje under logoet */
-    .team-standing {
-      margin-top: 6px;
-      font-size: clamp(1rem, 2.5vw, 1.2rem);
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: #e5e7eb;
-    }
+.team-standing {
+  margin-top: 6px;
+  font-size: clamp(1.4rem, 3.2vw, 2rem); /* større tekst */
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #e5e7eb;
+}
 
-    .team-standing span {
-      display: inline-block;
-      min-width: 1.4em;
-      text-align: center;
-    }
+.team-standing span {
+  display: inline-block;
+  min-width: 1.6em;
+  text-align: center;
+}
+
+/* NYT: farver på scoretal */
+#standingHome {
+  color: #22c55e;  /* grøn */
+  font-weight: 800;
+}
+
+#standingAway {
+  color: #ef4444;  /* rød */
+  font-weight: 800;
+}
+
 
     .team-standing-label {
       opacity: 0.8;
@@ -189,7 +201,6 @@
 
     .player-sub {
       opacity: 0.9;
-      font-weight: 500;
     }
 
     /* Sæt-kolonner */
