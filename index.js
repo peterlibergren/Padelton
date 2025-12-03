@@ -69,6 +69,7 @@ let lunarEnabled = false;      // true/false
 let lunarCourts = [];          // fx [1,2,3]
 let lunarRound1 = [];          // [{ courtId, homeIdx1, homeIdx2, awayIdx1, awayIdx2 }, ...]
 let lunarRound2 = [];          // samme struktur som runde 1
+let lunarSuperMatchCourtId = null; // bane til SUPER MATCH-TIE (7. kamp)
 
 // ==== HJÆLPER: lav "Peter / Lars" ud fra indices ====
 function buildNameFromIndices(side, idx1, idx2) {
@@ -291,7 +292,11 @@ app.post("/api/setCourtPlayers", (req, res) => {
 // POST /api/setLunarConfig
 app.post("/api/setLunarConfig", (req, res) => {
   const body = req.body || {};
-  const { lunarEnabled: enabledFromClient, lunarCourts: courtsFromClient } = body;
+  const {
+    lunarEnabled: enabledFromClient,
+    lunarCourts: courtsFromClient,
+    lunarSuperMatchCourtId: superFromClient,
+  } = body;
 
   lunarEnabled = !!enabledFromClient;
 
@@ -303,17 +308,35 @@ app.post("/api/setLunarConfig", (req, res) => {
     lunarCourts = [];
   }
 
-  // Her kunne du evt. trimme til max 3 baner:
-  // lunarCourts = lunarCourts.slice(0, 3);
+  // SUPER MATCH-TIE bane
+  let superId = null;
+  if (superFromClient !== undefined && superFromClient !== null && superFromClient !== "") {
+    const n = Number(superFromClient);
+    if (Number.isFinite(n) && n >= 1 && n <= 5) {
+      superId = n;
+    }
+  }
 
-  console.log("[LUNAR CONFIG] enabled:", lunarEnabled, "courts:", lunarCourts);
+  // (valgfrit) du kan også kræve at superId er en af lunarCourts:
+  if (superId != null && !lunarCourts.includes(superId)) {
+    superId = null;
+  }
+
+  lunarSuperMatchCourtId = superId;
+
+  console.log("[LUNAR CONFIG] enabled:", lunarEnabled,
+    "courts:", lunarCourts,
+    "superMatchCourt:", lunarSuperMatchCourtId
+  );
 
   return res.json({
     status: "ok",
     lunarEnabled,
     lunarCourts,
+    lunarSuperMatchCourtId,
   });
 });
+
 
 // ==== LUNAR — GEM SPILLERPAR PR. BANE & RUNDE ====
 // POST /api/setLunarCourtPlayers
@@ -394,6 +417,7 @@ app.get("/api/adminState", (req, res) => {
     lunarCourts,
     lunarRound1,
     lunarRound2,
+    lunarSuperMatchCourtId,
   });
 });
 
@@ -403,22 +427,29 @@ app.get("/api/courts", (req, res) => {
   const now = Date.now();
 
   const list = Object.values(courts).map((c) => {
-    // ONLINE: har vi hørt fra banen inden for de sidste 5 minutter?
     const diffMs = now - c.lastUpdate;
     const online = diffMs < 5 * 60 * 1000; // 5 min
 
-    // 1) start med basisnavne (fra controller)
+    // er banen del af LUNAR-formatet?
+    const isLunar =
+      lunarEnabled &&
+      Array.isArray(lunarCourts) &&
+      lunarCourts.includes(c.courtId);
+
+    const isSuperMatchTie = isLunar && lunarSuperMatchCourtId === c.courtId;
+
+    // 1) basisnavne
     let effHome = c.homeName;
     let effAway = c.awayName;
 
-    // ==== NYT: find evt. LUNAR-indekser for denne bane ====
+    // LUNAR: hvilke indices bruger vi?
     let usedHomeIdx1 = c.homeIdx1;
     let usedHomeIdx2 = c.homeIdx2;
     let usedAwayIdx1 = c.awayIdx1;
     let usedAwayIdx2 = c.awayIdx2;
+    let lunarRoundUsed = null; // 1 eller 2, hvis vi finder noget
 
-    if (lunarEnabled && Array.isArray(lunarCourts) && lunarCourts.includes(c.courtId)) {
-      // prøv først at finde entry i runde 2, ellers runde 1
+    if (isLunar) {
       let r2 = Array.isArray(lunarRound2)
         ? lunarRound2.find(e => e.courtId === c.courtId)
         : null;
@@ -440,6 +471,7 @@ app.get("/api/courts", (req, res) => {
         usedHomeIdx2 = src.homeIdx2 ?? null;
         usedAwayIdx1 = src.awayIdx1 ?? null;
         usedAwayIdx2 = src.awayIdx2 ?? null;
+        lunarRoundUsed = hasR2 ? 2 : 1;
       }
     }
 
@@ -485,6 +517,9 @@ app.get("/api/courts", (req, res) => {
       hasMatch,
       homeName: effHome,
       awayName: effAway,
+      isLunar,
+      isSuperMatchTie,
+      lunarRoundUsed,
     };
   });
 
