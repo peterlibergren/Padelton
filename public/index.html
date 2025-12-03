@@ -429,22 +429,37 @@
         const adminState = await adminResp.json();
         const data = await courtsResp.json(); // array med court-objekter
 
-        const lunarEnabled = !!adminState.lunarEnabled;
-        const lunarCourts = Array.isArray(adminState.lunarCourts)
-          ? adminState.lunarCourts.map(Number)
-          : [];
+let lunarEnabled = false;
+let lunarCourts = [];
 
-        // Skjul/vis banekort efter LUNAR-opsætning
-        courts.forEach(court => {
-          const cardEl = document.getElementById(`court-${court.id}`);
-          if (!cardEl) return;
+try {
+  lunarEnabled = !!adminState.lunarEnabled;
+  lunarCourts = Array.isArray(adminState.lunarCourts)
+    ? adminState.lunarCourts.map(Number).filter(n => Number.isFinite(n))
+    : [];
+} catch (e) {
+  console.warn("Kunne ikke læse LUNAR-felter fra adminState:", e);
+  lunarEnabled = false;
+  lunarCourts = [];
+}
 
-          if (lunarEnabled && lunarCourts.length > 0) {
-            cardEl.style.display = lunarCourts.includes(court.id) ? "" : "none";
-          } else {
-            cardEl.style.display = "";
-          }
-        });
+// Debug-log (du kan se det i browserens DevTools -> Console)
+console.log("LUNAR:", { lunarEnabled, lunarCourts });
+
+// Skjul/vis banekort efter LUNAR-opsætning
+courts.forEach(court => {
+  const cardEl = document.getElementById(`court-${court.id}`);
+  if (!cardEl) return;
+
+  // Kun hvis LUNAR er aktiv OG der faktisk er valgt baner
+  if (lunarEnabled && lunarCourts.length > 0) {
+    cardEl.style.display = lunarCourts.includes(court.id) ? "" : "none";
+  } else {
+    // fallback: vis alle baner
+    cardEl.style.display = "";
+  }
+});
+
 
         data.forEach(c => {
           const id = c.courtId;
