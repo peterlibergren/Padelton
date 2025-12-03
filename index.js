@@ -27,7 +27,7 @@ for (let i = 1; i <= 5; i++) {
     adminHomeName: null,
     adminAwayName: null,
 
-    // Spiller-valg (1..16, null = ingen)
+    // Spiller-valg (1..16, null = ingen) – standardopsætning
     homeIdx1: null,
     homeIdx2: null,
     awayIdx1: null,
@@ -43,7 +43,7 @@ for (let i = 1; i <= 5; i++) {
     homeSets: 0,
     awaySets: 0,
 
-    // NYT: set-historik (fra controlleren)
+    // Set-historik (fra controlleren)
     // -1 betyder "ikke sat / ikke spillet"
     set1Home: -1,
     set1Away: -1,
@@ -55,7 +55,7 @@ for (let i = 1; i <= 5; i++) {
     set2LoserTbPoints: -1,
     set2LoserIsHome: false,
 
-    // valgfri fritekst, hvis du vil bruge den senere
+    // valgfri fritekst
     setsStr: "",
 
     online: false,
@@ -65,11 +65,17 @@ for (let i = 1; i <= 5; i++) {
 
 // ==== LUNAR-STATE (i RAM) ====
 // Om LUNAR-format er aktivt, hvilke baner der er valgt, og spillerpar for runde 1 og 2
-let lunarEnabled = false;      // true/false
-let lunarCourts = [];          // fx [1,2,3]
-let lunarRound1 = [];          // [{ courtId, homeIdx1, homeIdx2, awayIdx1, awayIdx2 }, ...]
-let lunarRound2 = [];          // samme struktur som runde 1
+let lunarEnabled = false;          // true/false
+let lunarCourts = [];              // fx [1,2,3]
+let lunarRound1 = [];              // [{ courtId, homeIdx1, homeIdx2, awayIdx1, awayIdx2 }, ...]
+let lunarRound2 = [];              // samme struktur
 let lunarSuperMatchCourtId = null; // bane til SUPER MATCH-TIE (7. kamp)
+let lunarSuperMatchPlayers = {     // spiller-indices til 7. kamp
+  homeIdx1: null,
+  homeIdx2: null,
+  awayIdx1: null,
+  awayIdx2: null,
+};
 
 // ==== HJÆLPER: lav "Peter / Lars" ud fra indices ====
 function buildNameFromIndices(side, idx1, idx2) {
@@ -107,7 +113,7 @@ app.post("/api/updateScore", (req, res) => {
     homeSets,
     awaySets,
 
-    // NYT: set-felter fra controller
+    // set-felter fra controller
     set1Home,
     set1Away,
     set1LoserTbPoints,
@@ -141,7 +147,7 @@ app.post("/api/updateScore", (req, res) => {
   if (homeSets !== undefined) c.homeSets = homeSets;
   if (awaySets !== undefined) c.awaySets = awaySets;
 
-  // NYT: set-historik (konverter til tal/bool)
+  // set-historik (konverter til tal/bool)
   function toIntOrDefault(v, def) {
     if (v === undefined || v === null || v === "") return def;
     const n = Number(v);
@@ -307,6 +313,12 @@ app.post("/api/setLunarConfig", (req, res) => {
     lunarRound1 = [];
     lunarRound2 = [];
     lunarSuperMatchCourtId = null;
+    lunarSuperMatchPlayers = {
+      homeIdx1: null,
+      homeIdx2: null,
+      awayIdx1: null,
+      awayIdx2: null,
+    };
 
     console.log("[LUNAR CONFIG] disabled");
     return res.json({
@@ -314,6 +326,7 @@ app.post("/api/setLunarConfig", (req, res) => {
       lunarEnabled,
       lunarCourts,
       lunarSuperMatchCourtId,
+      lunarSuperMatchPlayers,
     });
   }
 
@@ -349,11 +362,9 @@ app.post("/api/setLunarConfig", (req, res) => {
     lunarEnabled,
     lunarCourts,
     lunarSuperMatchCourtId,
+    lunarSuperMatchPlayers,
   });
 });
-
-
-
 
 // ==== LUNAR — GEM SPILLERPAR PR. BANE & RUNDE ====
 // POST /api/setLunarCourtPlayers
@@ -413,6 +424,34 @@ app.post("/api/setLunarCourtPlayers", (req, res) => {
   });
 });
 
+// ==== LUNAR — GEM SPILLERE TIL SUPER MATCH-TIE (7. kamp) ====
+// POST /api/setLunarSuperMatchPlayers
+app.post("/api/setLunarSuperMatchPlayers", (req, res) => {
+  const { homeIdx1, homeIdx2, awayIdx1, awayIdx2 } = req.body || {};
+
+  function normIdx(v) {
+    if (v === null || v === undefined || v === "" || v === 0) return null;
+    const num = Number(v);
+    if (!Number.isFinite(num)) return null;
+    if (num < 1 || num > MAX_PLAYERS) return null;
+    return num;
+  }
+
+  lunarSuperMatchPlayers = {
+    homeIdx1: normIdx(homeIdx1),
+    homeIdx2: normIdx(homeIdx2),
+    awayIdx1: normIdx(awayIdx1),
+    awayIdx2: normIdx(awayIdx2),
+  };
+
+  console.log("[LUNAR SUPER MATCH PLAYERS]:", lunarSuperMatchPlayers);
+
+  return res.json({
+    status: "ok",
+    ...lunarSuperMatchPlayers,
+  });
+});
+
 // ==== ADMIN — HENT HELE ADMIN-STATE ====
 // GET /api/adminState
 app.get("/api/adminState", (req, res) => {
@@ -435,11 +474,10 @@ app.get("/api/adminState", (req, res) => {
     lunarRound1,
     lunarRound2,
     lunarSuperMatchCourtId,
+    lunarSuperMatchPlayers,
   });
 });
 
-// ==== SCOREBOARD & VIEW: HENT ALLE BANER ====
-// GET /api/courts
 // ==== SCOREBOARD & VIEW: HENT ALLE BANER ====
 // GET /api/courts
 app.get("/api/courts", (req, res) => {
@@ -469,6 +507,7 @@ app.get("/api/courts", (req, res) => {
     let usedAwayIdx2 = c.awayIdx2;
     let lunarRoundUsed = null; // 1 eller 2 hvis vi bruger LUNAR-data
 
+    // LUNAR runde 1/2 override
     if (isLunar) {
       let r2 = Array.isArray(lunarRound2)
         ? lunarRound2.find(e => e.courtId === c.courtId)
@@ -492,6 +531,22 @@ app.get("/api/courts", (req, res) => {
         usedAwayIdx1 = src.awayIdx1 ?? null;
         usedAwayIdx2 = src.awayIdx2 ?? null;
         lunarRoundUsed = hasR2 ? 2 : 1;
+      }
+    }
+
+    // SUPER MATCH-TIE override (spillere til 7. kamp)
+    if (isLunar && isSuperMatchTie && lunarSuperMatchPlayers) {
+      const p = lunarSuperMatchPlayers;
+      const hasAny =
+        p.homeIdx1 != null || p.homeIdx2 != null ||
+        p.awayIdx1 != null || p.awayIdx2 != null;
+
+      if (hasAny) {
+        usedHomeIdx1 = p.homeIdx1 ?? null;
+        usedHomeIdx2 = p.homeIdx2 ?? null;
+        usedAwayIdx1 = p.awayIdx1 ?? null;
+        usedAwayIdx2 = p.awayIdx2 ?? null;
+        // lunarRoundUsed lader vi være – frontenden håndterer badge-tekst ift. SUPER
       }
     }
 
@@ -536,8 +591,6 @@ app.get("/api/courts", (req, res) => {
 
   res.json(list);
 });
-
-
 
 // ==== STATISKE FILER (index.html, view.html, admin.html, ...) ====
 app.use(express.static(path.join(__dirname, "public")));
