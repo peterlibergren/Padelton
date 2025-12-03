@@ -254,6 +254,31 @@
       text-align: center;
       opacity: 0.85;
     }
+    .lunar-badge,
+.super-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.lunar-badge {
+  background: rgba(56, 189, 248, 0.12);  /* cyan-ish */
+  border: 1px solid rgba(56, 189, 248, 0.6);
+  color: #e0f2fe;
+}
+
+.super-badge {
+  background: rgba(234, 179, 8, 0.18);   /* gul-ish */
+  border: 1px solid rgba(234, 179, 8, 0.8);
+  color: #fef9c3;
+}
+
+
+    
   </style>
 </head>
 <body>
@@ -299,10 +324,14 @@
       card.id = `court-${court.id}`;
 
       card.innerHTML = `
-        <div class="court-header">
-          <div class="court-title">${court.sponsor}</div>
-          <span class="court-status-tag" id="status-${court.id}">Opdaterer…</span>
-        </div>
+  <div class="court-header">
+    <div class="court-title">
+      ${court.sponsor}
+      <span class="lunar-badge hidden" id="lunarBadge-${court.id}">LUNAR</span>
+      <span class="super-badge hidden" id="superBadge-${court.id}">SUPER MATCH-TIE</span>
+    </div>
+    <span class="court-status-tag" id="status-${court.id}">Opdaterer…</span>
+  </div>
 
         <div class="teams">
           <!-- Hjemmehold -->
@@ -492,6 +521,32 @@ courts.forEach(court => {
           const awayGamesEl  = document.getElementById(`awayGames-${id}`);
 
           const updatedEl    = document.getElementById(`updated-${id}`);
+
+          const lunarBadgeEl = document.getElementById(`lunarBadge-${id}`);
+const superBadgeEl = document.getElementById(`superBadge-${id}`);
+
+// LUNAR badge + runde
+if (lunarBadgeEl) {
+  if (c.isLunar) {
+    lunarBadgeEl.classList.remove("hidden");
+    if (c.lunarRoundUsed === 1 || c.lunarRoundUsed === 2) {
+      lunarBadgeEl.textContent = `LUNAR R${c.lunarRoundUsed}`;
+    } else {
+      lunarBadgeEl.textContent = "LUNAR";
+    }
+  } else {
+    lunarBadgeEl.classList.add("hidden");
+  }
+}
+
+// SUPER MATCH-TIE badge
+if (superBadgeEl) {
+  if (c.isSuperMatchTie) {
+    superBadgeEl.classList.remove("hidden");
+  } else {
+    superBadgeEl.classList.add("hidden");
+  }
+}
 
           if (!statusEl) return; // banen findes ikke i layoutet
 
