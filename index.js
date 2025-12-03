@@ -290,6 +290,8 @@ app.post("/api/setCourtPlayers", (req, res) => {
 
 // ==== LUNAR — GEM OPSÆTNING (ON/OFF + BANER) ====
 // POST /api/setLunarConfig
+// ==== LUNAR — GEM OPSÆTNING (ON/OFF + BANER + SUPER MATCH-TIE) ====
+// POST /api/setLunarConfig
 app.post("/api/setLunarConfig", (req, res) => {
   const body = req.body || {};
   const {
@@ -301,6 +303,24 @@ app.post("/api/setLunarConfig", (req, res) => {
   // On/off
   lunarEnabled = !!enabledFromClient;
 
+  // Hvis LUNAR slås FRA → ryd alt LUNAR-state
+  if (!lunarEnabled) {
+    lunarCourts = [];
+    lunarRound1 = [];
+    lunarRound2 = [];
+    lunarSuperMatchCourtId = null;
+
+    console.log("[LUNAR CONFIG] disabled");
+    return res.json({
+      status: "ok",
+      lunarEnabled,
+      lunarCourts,
+      lunarSuperMatchCourtId,
+    });
+  }
+
+  // Hvis vi ER her, er LUNAR slået TIL
+
   // Valgte LUNAR-baner
   if (Array.isArray(courtsFromClient)) {
     lunarCourts = courtsFromClient
@@ -310,7 +330,7 @@ app.post("/api/setLunarConfig", (req, res) => {
     lunarCourts = [];
   }
 
-  // SUPER MATCH-TIE bane
+  // SUPER MATCH-TIE bane (skal være en af LUNAR-banerne)
   let superId = null;
   if (superFromClient !== undefined && superFromClient !== null && superFromClient !== "") {
     const n = Number(superFromClient);
@@ -333,6 +353,7 @@ app.post("/api/setLunarConfig", (req, res) => {
     lunarSuperMatchCourtId,
   });
 });
+
 
 
 
