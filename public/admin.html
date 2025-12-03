@@ -318,13 +318,22 @@
         á 3 kampe. Hvis stillingen efter 6 kampe er 3–3, kan der spilles en 7. kamp på en valgfri bane.
       </div>
 
-      <div class="lunar-courts" id="lunarCourtsContainer">
-        <!-- Checkboxe for baner indsættes via JS -->
-      </div>
+     <div class="lunar-courts" id="lunarCourtsContainer">
+  <!-- Checkboxe for baner indsættes via JS -->
+</div>
 
-      <div class="btn-row">
-        <button type="button" onclick="saveLunarConfig()">Gem LUNAR-opsætning</button>
-      </div>
+<div class="small" style="margin-top:4px;">
+  SUPER MATCH-TIE (7. kamp) bane:
+  <select id="lunarSuperMatchSelect">
+    <option value="">(ingen)</option>
+    <!-- udfyldes via JS med de valgte LUNAR-baner -->
+  </select>
+</div>
+
+<div class="btn-row">
+  <button type="button" onclick="saveLunarConfig()">Gem LUNAR-opsætning</button>
+</div>
+
       <div class="lunar-note">
         Vælg præcis 3 baner til LUNAR-formatet. Du kan sammensætte spillerpar for runde 1 og 2 nedenfor.
       </div>
@@ -422,6 +431,8 @@
     const lunarRoundsSection = document.getElementById("lunarRoundsSection");
     const lunarRound1Body = document.getElementById("lunarRound1Body");
     const lunarRound2Body = document.getElementById("lunarRound2Body");
+    const lunarSuperMatchSelect = document.getElementById("lunarSuperMatchSelect");
+
 
     // Hjælper til at udfylde en select med (ingen), 1..MAX_PLAYERS
     function fillSelectOptionsForElement(sel) {
@@ -440,6 +451,25 @@
         sel.appendChild(opt);
       }
     }
+function updateSuperMatchSelect(selectedCourts) {
+  if (!lunarSuperMatchSelect) return;
+
+  lunarSuperMatchSelect.innerHTML = "";
+
+  // "(ingen)"-valget
+  const optNone = document.createElement("option");
+  optNone.value = "";
+  optNone.textContent = "(ingen)";
+  lunarSuperMatchSelect.appendChild(optNone);
+
+  // én option pr. valgt LUNAR-bane
+  selectedCourts.forEach(court => {
+    const opt = document.createElement("option");
+    opt.value = String(court.id);
+    opt.textContent = court.sponsor;
+    lunarSuperMatchSelect.appendChild(opt);
+  });
+}
 
     // Byg inputfelter for spillerlister
     function buildRosterInputs() {
@@ -558,6 +588,8 @@
     function rebuildLunarRoundRows() {
       const selectedIds = getSelectedLunarCourtIds();
       const selectedCourts = courtsMeta.filter(c => selectedIds.includes(c.id));
+    
+      updateSuperMatchSelect(selectedCourts);
 
       // Runde 1
       lunarRound1Body.innerHTML = "";
@@ -690,6 +722,10 @@
 
         // Byg rækker til LUNAR-runder baseret på valgte baner
         rebuildLunarRoundRows();
+// SUPER MATCH-TIE bane
+if (typeof data.lunarSuperMatchCourtId === "number" && lunarSuperMatchSelect) {
+  lunarSuperMatchSelect.value = String(data.lunarSuperMatchCourtId);
+}
 
         // Udfyld LUNAR runde 1/2 fra server
         if (Array.isArray(data.lunarRound1)) {
@@ -803,36 +839,43 @@
     }
 
     // Gem LUNAR-opsætning (on/off + hvilke baner)
-    async function saveLunarConfig() {
-      const enabled = lunarEnabledCheckbox.checked;
-      const courtIds = getSelectedLunarCourtIds();
+// Gem LUNAR-opsætning (on/off + hvilke baner + SUPER MATCH-TIE bane)
+async function saveLunarConfig() {
+  const enabled = lunarEnabledCheckbox.checked;
+  const courtIds = getSelectedLunarCourtIds();
+  const superMatchValue = lunarSuperMatchSelect && lunarSuperMatchSelect.value
+    ? Number(lunarSuperMatchSelect.value)
+    : null;
 
-      lunarConfigStatus.textContent = "Gemmer...";
-      lunarConfigStatus.style.color = "#e5e7eb";
+  lunarConfigStatus.textContent = "Gemmer...";
+  lunarConfigStatus.style.color = "#e5e7eb";
 
-      try {
-        const resp = await fetch("/api/setLunarConfig", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            lunarEnabled: enabled,
-            lunarCourts: courtIds,
-          }),
-        });
-        if (!resp.ok) throw new Error("HTTP " + resp.status);
+  try {
+    const resp = await fetch("/api/setLunarConfig", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        lunarEnabled: enabled,
+        lunarCourts: courtIds,
+        lunarSuperMatchCourtId: superMatchValue,
+      }),
+    });
 
-        lunarConfigStatus.textContent = "LUNAR-opsætning gemt";
-        lunarConfigStatus.style.color = "#22c55e";
-      } catch (err) {
-        console.error("Fejl ved saveLunarConfig:", err);
-        lunarConfigStatus.textContent = "Fejl ved gem";
-        lunarConfigStatus.style.color = "#f97373";
-      }
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
 
-      setTimeout(() => {
-        lunarConfigStatus.textContent = "";
-      }, 3000);
-    }
+    lunarConfigStatus.textContent = "LUNAR-opsætning gemt";
+    lunarConfigStatus.style.color = "#22c55e";
+  } catch (err) {
+    console.error("Fejl ved saveLunarConfig:", err);
+    lunarConfigStatus.textContent = "Fejl ved gem";
+    lunarConfigStatus.style.color = "#f97373";
+  }
+
+  setTimeout(() => {
+    lunarConfigStatus.textContent = "";
+  }, 3000);
+}
+
 
     // Gem spillerpar for én bane og én runde i LUNAR-formatet
     async function saveLunarCourt(courtId, round) {
