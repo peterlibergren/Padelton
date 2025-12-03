@@ -298,8 +298,10 @@ app.post("/api/setLunarConfig", (req, res) => {
     lunarSuperMatchCourtId: superFromClient,
   } = body;
 
+  // On/off
   lunarEnabled = !!enabledFromClient;
 
+  // Valgte LUNAR-baner
   if (Array.isArray(courtsFromClient)) {
     lunarCourts = courtsFromClient
       .map(Number)
@@ -312,14 +314,9 @@ app.post("/api/setLunarConfig", (req, res) => {
   let superId = null;
   if (superFromClient !== undefined && superFromClient !== null && superFromClient !== "") {
     const n = Number(superFromClient);
-    if (Number.isFinite(n) && n >= 1 && n <= 5) {
+    if (Number.isFinite(n) && n >= 1 && n <= 5 && lunarCourts.includes(n)) {
       superId = n;
     }
-  }
-
-  // (valgfrit) du kan også kræve at superId er en af lunarCourts:
-  if (superId != null && !lunarCourts.includes(superId)) {
-    superId = null;
   }
 
   lunarSuperMatchCourtId = superId;
@@ -336,6 +333,7 @@ app.post("/api/setLunarConfig", (req, res) => {
     lunarSuperMatchCourtId,
   });
 });
+
 
 
 // ==== LUNAR — GEM SPILLERPAR PR. BANE & RUNDE ====
@@ -423,6 +421,8 @@ app.get("/api/adminState", (req, res) => {
 
 // ==== SCOREBOARD & VIEW: HENT ALLE BANER ====
 // GET /api/courts
+// ==== SCOREBOARD & VIEW: HENT ALLE BANER ====
+// GET /api/courts
 app.get("/api/courts", (req, res) => {
   const now = Date.now();
 
@@ -436,18 +436,19 @@ app.get("/api/courts", (req, res) => {
       Array.isArray(lunarCourts) &&
       lunarCourts.includes(c.courtId);
 
+    // er dette den valgte SUPER MATCH-TIE bane?
     const isSuperMatchTie = isLunar && lunarSuperMatchCourtId === c.courtId;
 
     // 1) basisnavne
     let effHome = c.homeName;
     let effAway = c.awayName;
 
-    // LUNAR: hvilke indices bruger vi?
+    // hvilke indices bruger vi (standard vs LUNAR-round)?
     let usedHomeIdx1 = c.homeIdx1;
     let usedHomeIdx2 = c.homeIdx2;
     let usedAwayIdx1 = c.awayIdx1;
     let usedAwayIdx2 = c.awayIdx2;
-    let lunarRoundUsed = null; // 1 eller 2, hvis vi finder noget
+    let lunarRoundUsed = null; // 1 eller 2 hvis vi bruger LUNAR-data
 
     if (isLunar) {
       let r2 = Array.isArray(lunarRound2)
@@ -475,26 +476,17 @@ app.get("/api/courts", (req, res) => {
       }
     }
 
-    // 2) admin-fritekst overskriver basisnavne
+    // admin-fritekst overskriver basisnavne
     if (c.adminHomeName) effHome = c.adminHomeName;
     if (c.adminAwayName) effAway = c.adminAwayName;
 
-    // 3) spillerliste-assignments overskriver begge dele, hvis sat
-    const fromHomeRoster = buildNameFromIndices(
-      "home",
-      usedHomeIdx1,
-      usedHomeIdx2
-    );
-    const fromAwayRoster = buildNameFromIndices(
-      "away",
-      usedAwayIdx1,
-      usedAwayIdx2
-    );
+    // spillerliste-navne overskriver
+    const fromHomeRoster = buildNameFromIndices("home", usedHomeIdx1, usedHomeIdx2);
+    const fromAwayRoster = buildNameFromIndices("away", usedAwayIdx1, usedAwayIdx2);
 
     if (fromHomeRoster) effHome = fromHomeRoster;
     if (fromAwayRoster) effAway = fromAwayRoster;
 
-    // 4) HAR VI OVERHOVEDET EN KAMP?
     const hasMatchByPlayers =
       usedHomeIdx1 != null ||
       usedHomeIdx2 != null ||
@@ -525,6 +517,7 @@ app.get("/api/courts", (req, res) => {
 
   res.json(list);
 });
+
 
 
 // ==== STATISKE FILER (index.html, view.html, admin.html, ...) ====
