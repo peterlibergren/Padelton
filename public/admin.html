@@ -149,7 +149,7 @@
       text-align: right;
     }
 
-    /* bane-assignments */
+    /* bane-assignments (standard) */
     table {
       width: 100%;
       border-collapse: collapse;
@@ -212,6 +212,61 @@
         display: none; /* skjul status-kolonne på meget smal mobil */
       }
     }
+
+    /* LUNAR-format sektioner */
+    .lunar-toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      margin-bottom: 8px;
+    }
+
+    .lunar-courts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 0.8rem;
+      margin-bottom: 6px;
+    }
+
+    .lunar-court-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #020617;
+      border: 1px solid #4b5563;
+    }
+
+    .lunar-rounds-header {
+      font-size: 0.8rem;
+      color: #9ca3af;
+      margin-bottom: 4px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .lunar-round-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-top: 4px;
+      margin-bottom: 2px;
+    }
+
+    .lunar-note {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      margin-top: 4px;
+    }
+
+    .inline-status {
+      margin-left: 8px;
+      font-size: 0.8rem;
+    }
   </style>
 </head>
 <body>
@@ -229,7 +284,8 @@
     <section>
       <h2>Spillerliste</h2>
       <div class="small">
-        Udfyld op til 16 spillere for hjemme og ude. Brug numrene til at tildele spillere til banerne nedenfor.
+        Udfyld op til 16 spillere for hjemme og ude. Brug numrene til at tildele spillere til banerne
+        (standard eller LUNAR-format).
       </div>
       <div class="roster-grid">
         <div class="roster-column">
@@ -243,244 +299,13 @@
       </div>
       <div class="btn-row">
         <button type="button" onclick="saveRoster()">Gem spillerliste</button>
-        <span id="rosterStatus" style="margin-left:8px; font-size:0.8rem;"></span>
+        <span id="rosterStatus" class="inline-status"></span>
       </div>
     </section>
 
-    <!-- BANE-ASSIGNMENTS -->
+    <!-- LUNAR-FORMAT - KONFIGURATION -->
     <section>
-      <h2>Baner & spillerpar</h2>
-      <div class="small">
-        Vælg hvilke spillere (nummer fra listen ovenfor) der spiller på hver bane.
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Bane</th>
-            <th>Hjemme-par (2 spillere)</th>
-            <th>Ude-par (2 spillere)</th>
-            <th>Gem</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody id="courtsBody"></tbody>
-      </table>
-    </section>
-  </main>
-
-  <script>
-    const courtsMeta = [
-      { id: 1, sponsor: "Bane 1 – BetaPack" },
-      { id: 2, sponsor: "Bane 2 – Brdr. Thybo" },
-      { id: 3, sponsor: "Bane 3 – Schantz" },
-      { id: 4, sponsor: "Bane 4 – 10-4" },
-      { id: 5, sponsor: "Bane 5 – Slagteren" },
-    ];
-
-    const MAX_PLAYERS = 16;
-
-    const homeRosterDiv = document.getElementById("homeRoster");
-    const awayRosterDiv = document.getElementById("awayRoster");
-    const courtsBody = document.getElementById("courtsBody");
-    const rosterStatus = document.getElementById("rosterStatus");
-
-    // Byg inputfelter for spillerlister
-    function buildRosterInputs() {
-      homeRosterDiv.innerHTML = "";
-      awayRosterDiv.innerHTML = "";
-
-      for (let i = 1; i <= MAX_PLAYERS; i++) {
-        const hr = document.createElement("div");
-        hr.className = "player-row";
-        hr.innerHTML = `
-          <span>${i}.</span>
-          <input type="text" id="homePlayer-${i}" placeholder="Spiller ${i}" />
-        `;
-        homeRosterDiv.appendChild(hr);
-
-        const ar = document.createElement("div");
-        ar.className = "player-row";
-        ar.innerHTML = `
-          <span>${i}.</span>
-          <input type="text" id="awayPlayer-${i}" placeholder="Spiller ${i}" />
-        `;
-        awayRosterDiv.appendChild(ar);
-      }
-    }
-
-    // Byg bane-rækker
-    function buildCourtRows() {
-      courtsBody.innerHTML = "";
-
-      courtsMeta.forEach(court => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${court.sponsor}</td>
-          <td>
-            <div style="display:flex; gap:4px;">
-              <select id="homeIdx1-${court.id}"></select>
-              <select id="homeIdx2-${court.id}"></select>
-            </div>
-          </td>
-          <td>
-            <div style="display:flex; gap:4px;">
-              <select id="awayIdx1-${court.id}"></select>
-              <select id="awayIdx2-${court.id}"></select>
-            </div>
-          </td>
-          <td>
-            <button type="button" onclick="saveCourt(${court.id})">Gem bane</button>
-          </td>
-          <td class="status-cell">
-            <span id="status-${court.id}"></span>
-          </td>
-        `;
-        courtsBody.appendChild(tr);
-      });
-    }
-
-    // Fyld dropdowns med 0..16
-    function fillSelectOptions() {
-      courtsMeta.forEach(court => {
-        ["homeIdx1", "homeIdx2", "awayIdx1", "awayIdx2"].forEach(prefix => {
-          const sel = document.getElementById(`${prefix}-${court.id}`);
-          if (!sel) return;
-          sel.innerHTML = "";
-          const optEmpty = document.createElement("option");
-          optEmpty.value = "";
-          optEmpty.textContent = "(ingen)";
-          sel.appendChild(optEmpty);
-
-          for (let i = 1; i <= MAX_PLAYERS; i++) {
-            const opt = document.createElement("option");
-            opt.value = String(i);
-            opt.textContent = String(i);
-            sel.appendChild(opt);
-          }
-        });
-      });
-    }
-
-    // Hent adminState fra server (spillere + bane-assignments)
-    async function loadAdminState() {
-      try {
-        const resp = await fetch("/api/adminState", { cache: "no-store" });
-        if (!resp.ok) throw new Error("HTTP " + resp.status);
-
-        const data = await resp.json();
-
-        const hp = Array.isArray(data.homePlayers) ? data.homePlayers : [];
-        const ap = Array.isArray(data.awayPlayers) ? data.awayPlayers : [];
-
-        // Udfyld spillerfelter
-        for (let i = 1; i <= MAX_PLAYERS; i++) {
-          const hInput = document.getElementById(`homePlayer-${i}`);
-          const aInput = document.getElementById(`awayPlayer-${i}`);
-          if (hInput) hInput.value = hp[i - 1] || "";
-          if (aInput) aInput.value = ap[i - 1] || "";
-        }
-
-        // Udfyld dropdown-valg pr. bane
-        if (Array.isArray(data.courts)) {
-          data.courts.forEach(c => {
-            const id = c.courtId;
-            const h1 = document.getElementById(`homeIdx1-${id}`);
-            const h2 = document.getElementById(`homeIdx2-${id}`);
-            const a1 = document.getElementById(`awayIdx1-${id}`);
-            const a2 = document.getElementById(`awayIdx2-${id}`);
-
-            if (h1 && c.homeIdx1 != null) h1.value = String(c.homeIdx1);
-            if (h2 && c.homeIdx2 != null) h2.value = String(c.homeIdx2);
-            if (a1 && c.awayIdx1 != null) a1.value = String(c.awayIdx1);
-            if (a2 && c.awayIdx2 != null) a2.value = String(c.awayIdx2);
-          });
-        }
-      } catch (err) {
-        console.error("Fejl ved loadAdminState:", err);
-      }
-    }
-
-    async function saveRoster() {
-      const hp = [];
-      const ap = [];
-      for (let i = 1; i <= MAX_PLAYERS; i++) {
-        const hInput = document.getElementById(`homePlayer-${i}`);
-        const aInput = document.getElementById(`awayPlayer-${i}`);
-        hp.push(hInput ? hInput.value.trim() : "");
-        ap.push(aInput ? aInput.value.trim() : "");
-      }
-
-      rosterStatus.textContent = "Gemmer...";
-      rosterStatus.style.color = "#e5e7eb";
-
-      try {
-        const resp = await fetch("/api/setRoster", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ homePlayers: hp, awayPlayers: ap }),
-        });
-        if (!resp.ok) throw new Error("HTTP " + resp.status);
-
-        rosterStatus.textContent = "Spillerliste gemt";
-        rosterStatus.style.color = "#22c55e";
-      } catch (err) {
-        console.error("Fejl ved saveRoster:", err);
-        rosterStatus.textContent = "Fejl ved gem";
-        rosterStatus.style.color = "#f97373";
-      }
-
-      setTimeout(() => {
-        rosterStatus.textContent = "";
-      }, 3000);
-    }
-
-    async function saveCourt(courtId) {
-      const statusSpan = document.getElementById(`status-${courtId}`);
-      const h1 = document.getElementById(`homeIdx1-${courtId}`);
-      const h2 = document.getElementById(`homeIdx2-${courtId}`);
-      const a1 = document.getElementById(`awayIdx1-${courtId}`);
-      const a2 = document.getElementById(`awayIdx2-${courtId}`);
-
-      if (!statusSpan || !h1 || !h2 || !a1 || !a2) return;
-
-      statusSpan.textContent = "Gemmer...";
-      statusSpan.className = "status-cell";
-
-      const body = {
-        courtId,
-        homeIdx1: h1.value ? Number(h1.value) : null,
-        homeIdx2: h2.value ? Number(h2.value) : null,
-        awayIdx1: a1.value ? Number(a1.value) : null,
-        awayIdx2: a2.value ? Number(a2.value) : null,
-      };
-
-      try {
-        const resp = await fetch("/api/setCourtPlayers", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        if (!resp.ok) throw new Error("HTTP " + resp.status);
-
-        statusSpan.textContent = "Gemt";
-        statusSpan.className = "status-cell status-ok";
-      } catch (err) {
-        console.error("Fejl ved saveCourt:", err);
-        statusSpan.textContent = "Fejl";
-        statusSpan.className = "status-cell status-error";
-      }
-
-      setTimeout(() => {
-        statusSpan.textContent = "";
-        statusSpan.className = "status-cell";
-      }, 3000);
-    }
-
-    // Init
-    buildRosterInputs();
-    buildCourtRows();
-    fillSelectOptions();
-    loadAdminState();
-  </script>
-</body>
-</html>
+      <h2>LUNAR-format – Holdkamp (2 x 3 kampe)</h2>
+      <div class="lunar-toggle-row">
+        <label>
+          <input type="checkbox" id="lunarEnable
