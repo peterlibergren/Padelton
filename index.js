@@ -112,6 +112,91 @@ function buildNameFromIndices(side, idx1, idx2) {
   return names.join(" / ");
 }
 
+// Giver samme "effektive" navne som scoreboardet bruger i /api/courts
+function computeEffectiveNames(c) {
+  const isLunar =
+    lunarEnabled &&
+    Array.isArray(lunarCourts) &&
+    lunarCourts.includes(c.courtId);
+
+  const isSuperMatchTie = isLunar && lunarSuperMatchCourtId === c.courtId;
+
+  let effHome = c.homeName;
+  let effAway = c.awayName;
+
+  let usedHomeIdx1 = c.homeIdx1;
+  let usedHomeIdx2 = c.homeIdx2;
+  let usedAwayIdx1 = c.awayIdx1;
+  let usedAwayIdx2 = c.awayIdx2;
+  let lunarRoundUsed = null;
+
+  // LUNAR round 1/2 overrides (samme logik som i /api/courts)
+  if (isLunar) {
+    let r2 = Array.isArray(lunarRound2)
+      ? lunarRound2.find(e => e.courtId === c.courtId)
+      : null;
+    let r1 = Array.isArray(lunarRound1)
+      ? lunarRound1.find(e => e.courtId === c.courtId)
+      : null;
+
+    const hasR2 =
+      r2 &&
+      (r2.homeIdx1 != null || r2.homeIdx2 != null || r2.awayIdx1 != null || r2.awayIdx2 != null);
+    const hasR1 =
+      r1 &&
+      (r1.homeIdx1 != null || r1.homeIdx2 != null || r1.awayIdx1 != null || r1.awayIdx2 != null);
+
+    const src = hasR2 ? r2 : hasR1 ? r1 : null;
+
+    if (src) {
+      usedHomeIdx1 = src.homeIdx1 ?? null;
+      usedHomeIdx2 = src.homeIdx2 ?? null;
+      usedAwayIdx1 = src.awayIdx1 ?? null;
+      usedAwayIdx2 = src.awayIdx2 ?? null;
+      lunarRoundUsed = hasR2 ? 2 : 1;
+    }
+  }
+
+  // SUPER MATCH-TIE override (spillere til 7. kamp)
+  if (isLunar && isSuperMatchTie && lunarSuperMatchPlayers) {
+    const p = lunarSuperMatchPlayers;
+    const hasAny =
+      p.homeIdx1 != null || p.homeIdx2 != null ||
+      p.awayIdx1 != null || p.awayIdx2 != null;
+
+    if (hasAny) {
+      usedHomeIdx1 = p.homeIdx1 ?? null;
+      usedHomeIdx2 = p.homeIdx2 ?? null;
+      usedAwayIdx1 = p.awayIdx1 ?? null;
+      usedAwayIdx2 = p.awayIdx2 ?? null;
+    }
+  }
+
+  // Admin-navne
+  if (c.adminHomeName) effHome = c.adminHomeName;
+  if (c.adminAwayName) effAway = c.adminAwayName;
+
+  // Spillerlister → "Peter / Lars"
+  const fromHomeRoster = buildNameFromIndices("home", usedHomeIdx1, usedHomeIdx2);
+  const fromAwayRoster = buildNameFromIndices("away", usedAwayIdx1, usedAwayIdx2);
+
+  if (fromHomeRoster) effHome = fromHomeRoster;
+  if (fromAwayRoster) effAway = fromAwayRoster;
+
+  return {
+    effHome,
+    effAway,
+    isLunar,
+    isSuperMatchTie,
+    usedHomeIdx1,
+    usedHomeIdx2,
+    usedAwayIdx1,
+    usedAwayIdx2,
+    lunarRoundUsed,
+  };
+}
+
+
 // ==== CONTROLLER → CLOUD: scoreopdatering ====
 // POST /api/updateScore
 app.post("/api/updateScore", (req, res) => {
@@ -264,14 +349,16 @@ app.post("/api/updateScore", (req, res) => {
       const isSuperMatch = (lunarSuperMatchCourtId === courtId);
       if (isSuperMatch) round = 7;
 
-      // Gem resultat til slutskærm (inkl. per-sæt data)
+      // 🔹 Brug samme navne som scoreboardet
+      const names = computeEffectiveNames(c);
+
       lunarResults.push({
         round,
         courtId,
 
         // Navne på det tidspunkt kampen slutter
-        homeName: c.homeName,
-        awayName: c.awayName,
+        homeName: names.effHome,
+        awayName: names.effAway,
 
         // Samlet set-streng (fx "6-4,5-7,7-6(4)")
         setsStr: c.setsStr || "",
@@ -299,6 +386,7 @@ app.post("/api/updateScore", (req, res) => {
         `🔹 LUNAR kamp afsluttet på bane ${courtId} (runde ${round}) – vinder: ${newWinner}`
       );
     }
+
   }
 
   c.lastUpdate = Date.now();
@@ -621,78 +709,13 @@ app.get("/api/courts", (req, res) => {
     const diffMs = now - c.lastUpdate;
     const online = diffMs < 5 * 60 * 1000; // 5 min
 
-    const isLunar =
-      lunarEnabled &&
-      Array.isArray(lunarCourts) &&
-      lunarCourts.includes(c.courtId);
-
-    const isSuperMatchTie = isLunar && lunarSuperMatchCourtId === c.courtId;
-
-    let effHome = c.homeName;
-    let effAway = c.awayName;
-
-    let usedHomeIdx1 = c.homeIdx1;
-    let usedHomeIdx2 = c.homeIdx2;
-    let usedAwayIdx1 = c.awayIdx1;
-    let usedAwayIdx2 = c.awayIdx2;
-    let lunarRoundUsed = null;
-
-    // LUNAR round 1/2 overrides
-    if (isLunar) {
-      let r2 = Array.isArray(lunarRound2)
-        ? lunarRound2.find(e => e.courtId === c.courtId)
-        : null;
-      let r1 = Array.isArray(lunarRound1)
-        ? lunarRound1.find(e => e.courtId === c.courtId)
-        : null;
-
-      const hasR2 =
-        r2 &&
-        (r2.homeIdx1 != null || r2.homeIdx2 != null || r2.awayIdx1 != null || r2.awayIdx2 != null);
-      const hasR1 =
-        r1 &&
-        (r1.homeIdx1 != null || r1.homeIdx2 != null || r1.awayIdx1 != null || r1.awayIdx2 != null);
-
-      const src = hasR2 ? r2 : hasR1 ? r1 : null;
-
-      if (src) {
-        usedHomeIdx1 = src.homeIdx1 ?? null;
-        usedHomeIdx2 = src.homeIdx2 ?? null;
-        usedAwayIdx1 = src.awayIdx1 ?? null;
-        usedAwayIdx2 = src.awayIdx2 ?? null;
-        lunarRoundUsed = hasR2 ? 2 : 1;
-      }
-    }
-
-    // SUPER MATCH-TIE override (spillere til 7. kamp)
-    if (isLunar && isSuperMatchTie && lunarSuperMatchPlayers) {
-      const p = lunarSuperMatchPlayers;
-      const hasAny =
-        p.homeIdx1 != null || p.homeIdx2 != null ||
-        p.awayIdx1 != null || p.awayIdx2 != null;
-
-      if (hasAny) {
-        usedHomeIdx1 = p.homeIdx1 ?? null;
-        usedHomeIdx2 = p.homeIdx2 ?? null;
-        usedAwayIdx1 = p.awayIdx1 ?? null;
-        usedAwayIdx2 = p.awayIdx2 ?? null;
-      }
-    }
-
-    if (c.adminHomeName) effHome = c.adminHomeName;
-    if (c.adminAwayName) effAway = c.adminAwayName;
-
-    const fromHomeRoster = buildNameFromIndices("home", usedHomeIdx1, usedHomeIdx2);
-    const fromAwayRoster = buildNameFromIndices("away", usedAwayIdx1, usedAwayIdx2);
-
-    if (fromHomeRoster) effHome = fromHomeRoster;
-    if (fromAwayRoster) effAway = fromAwayRoster;
+    const names = computeEffectiveNames(c);
 
     const hasMatchByPlayers =
-      usedHomeIdx1 != null ||
-      usedHomeIdx2 != null ||
-      usedAwayIdx1 != null ||
-      usedAwayIdx2 != null;
+      names.usedHomeIdx1 != null ||
+      names.usedHomeIdx2 != null ||
+      names.usedAwayIdx1 != null ||
+      names.usedAwayIdx2 != null;
 
     const hasMatchByScore =
       c.homeGames > 0 ||
@@ -708,16 +731,17 @@ app.get("/api/courts", (req, res) => {
       ...c,
       online,
       hasMatch,
-      homeName: effHome,
-      awayName: effAway,
-      isLunar,
-      isSuperMatchTie,
-      lunarRoundUsed,
+      homeName: names.effHome,
+      awayName: names.effAway,
+      isLunar: names.isLunar,
+      isSuperMatchTie: names.isSuperMatchTie,
+      lunarRoundUsed: names.lunarRoundUsed,
     };
   });
 
   res.json(list);
 });
+
 
 // ==== STATISKE FILER (index.html, view.html, admin.html, ...) ====
 app.use(express.static(path.join(__dirname, "public")));
