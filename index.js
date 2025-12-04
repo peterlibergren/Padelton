@@ -55,14 +55,14 @@ for (let i = 1; i <= 5; i++) {
     set2LoserTbPoints: -1,
     set2LoserIsHome: false,
 
-    // valgfri fritekst
+    // valgfri fritekst – samlet set-resultat, fx "6-3,7-6(5),10-8(8)"
     setsStr: "",
-    
- // NYT: kampstatus
+
+    // Kampstatus (fra controller/bane-ESP)
     matchFinished: false,   // true = kampen er slut
     winner: 0,              // 0 = ingen, 1 = hjemme, 2 = ude
-    mtb3rd: false,          // true = 3. sæt er match-tiebreak til 10
-    
+    mtb3rd: false,          // true = 3. sæt er match-tie til 10
+
     online: false,
     lastUpdate: 0,
   };
@@ -81,6 +81,10 @@ let lunarSuperMatchPlayers = {     // spiller-indices til 7. kamp
   awayIdx1: null,
   awayIdx2: null,
 };
+
+// NYT: globale LUNAR-stillinger (antal vundne kampe samlet)
+let lunarHomeWinsTotal = 0;
+let lunarAwayWinsTotal = 0;
 
 // ==== HJÆLPER: lav "Peter / Lars" ud fra indices ====
 function buildNameFromIndices(side, idx1, idx2) {
@@ -135,7 +139,6 @@ app.post("/api/updateScore", (req, res) => {
     matchFinished,
     winner,
     mtb3rd,
-    
   } = req.body || {};
 
   if (!courtId || courtId < 1 || courtId > 5) {
@@ -143,6 +146,10 @@ app.post("/api/updateScore", (req, res) => {
   }
 
   const c = courts[courtId];
+
+  // Gem tidligere kampstatus for LUNAR-tælling
+  const prevFinished = !!c.matchFinished;
+  const prevWinner = Number(c.winner || 0); // 0,1,2
 
   // Basisnavne (admin/spillerliste kan overskrive senere)
   if (homeName !== undefined) c.homeName = homeName;
@@ -158,7 +165,7 @@ app.post("/api/updateScore", (req, res) => {
   if (homeSets !== undefined) c.homeSets = homeSets;
   if (awaySets !== undefined) c.awaySets = awaySets;
 
-  // set-historik (konverter til tal/bool)
+  // Hjælpere til parse ints/bools
   function toIntOrDefault(v, def) {
     if (v === undefined || v === null || v === "") return def;
     const n = Number(v);
@@ -177,6 +184,7 @@ app.post("/api/updateScore", (req, res) => {
     return def;
   }
 
+  // set-historik
   if (set1Home !== undefined) c.set1Home = toIntOrDefault(set1Home, -1);
   if (set1Away !== undefined) c.set1Away = toIntOrDefault(set1Away, -1);
   if (set1LoserTbPoints !== undefined)
@@ -206,6 +214,23 @@ app.post("/api/updateScore", (req, res) => {
   if (mtb3rd !== undefined) {
     c.mtb3rd = toBool(mtb3rd, false);
   }
+
+  // LUNAR – hvis kampen lige er blevet færdig (transition false -> true),
+  // og banen er en LUNAR-bane, så tæller vi kampen med i totalstillingen.
+  const newFinished = !!c.matchFinished;
+  const newWinner = Number(c.winner || 0);
+
+  if (!prevFinished && newFinished) {
+    // Kun hvis LUNAR er aktiv og banen er med i LUNAR
+    if (lunarEnabled && Array.isArray(lunarCourts) && lunarCourts.includes(courtId)) {
+      if (newWinner === 1) {
+        lunarHomeWinsTotal++;
+      } else if (newWinner === 2) {
+        lunarAwayWinsTotal++;
+      }
+    }
+  }
+
   c.lastUpdate = Date.now();
   c.online = true;
 
@@ -328,7 +353,7 @@ app.post("/api/setLunarConfig", (req, res) => {
   // On/off
   lunarEnabled = !!enabledFromClient;
 
-  // Hvis LUNAR slås FRA → ryd alt LUNAR-state
+  // Hvis LUNAR slås FRA → ryd alt LUNAR-state + stillinger
   if (!lunarEnabled) {
     lunarCourts = [];
     lunarRound1 = [];
@@ -341,13 +366,18 @@ app.post("/api/setLunarConfig", (req, res) => {
       awayIdx2: null,
     };
 
-    console.log("[LUNAR CONFIG] disabled");
+    lunarHomeWinsTotal = 0;
+    lunarAwayWinsTotal = 0;
+
+    console.log("[LUNAR CONFIG] disabled + nulstil stilling");
     return res.json({
       status: "ok",
       lunarEnabled,
       lunarCourts,
       lunarSuperMatchCourtId,
       lunarSuperMatchPlayers,
+      lunarHomeWinsTotal,
+      lunarAwayWinsTotal,
     });
   }
 
@@ -375,7 +405,9 @@ app.post("/api/setLunarConfig", (req, res) => {
 
   console.log("[LUNAR CONFIG] enabled:", lunarEnabled,
     "courts:", lunarCourts,
-    "superMatchCourt:", lunarSuperMatchCourtId
+    "superMatchCourt:", lunarSuperMatchCourtId,
+    "total H:", lunarHomeWinsTotal,
+    "total A:", lunarAwayWinsTotal
   );
 
   return res.json({
@@ -384,6 +416,8 @@ app.post("/api/setLunarConfig", (req, res) => {
     lunarCourts,
     lunarSuperMatchCourtId,
     lunarSuperMatchPlayers,
+    lunarHomeWinsTotal,
+    lunarAwayWinsTotal,
   });
 });
 
@@ -402,7 +436,6 @@ app.post("/api/setLunarCourtPlayers", (req, res) => {
     return res.status(400).json({ error: "Invalid courtId" });
   }
 
-  // Tillad null eller 1..16 (samme logik som ovenfor)
   function normIdx(v) {
     if (v === null || v === undefined || v === "" || v === 0) return null;
     const num = Number(v);
@@ -496,6 +529,8 @@ app.get("/api/adminState", (req, res) => {
     lunarRound2,
     lunarSuperMatchCourtId,
     lunarSuperMatchPlayers,
+    lunarHomeWinsTotal,
+    lunarAwayWinsTotal,
   });
 });
 
@@ -508,27 +543,23 @@ app.get("/api/courts", (req, res) => {
     const diffMs = now - c.lastUpdate;
     const online = diffMs < 5 * 60 * 1000; // 5 min
 
-    // er banen del af LUNAR-formatet?
     const isLunar =
       lunarEnabled &&
       Array.isArray(lunarCourts) &&
       lunarCourts.includes(c.courtId);
 
-    // er dette den valgte SUPER MATCH-TIE bane?
     const isSuperMatchTie = isLunar && lunarSuperMatchCourtId === c.courtId;
 
-    // 1) basisnavne
     let effHome = c.homeName;
     let effAway = c.awayName;
 
-    // hvilke indices bruger vi (standard vs LUNAR-round)?
     let usedHomeIdx1 = c.homeIdx1;
     let usedHomeIdx2 = c.homeIdx2;
     let usedAwayIdx1 = c.awayIdx1;
     let usedAwayIdx2 = c.awayIdx2;
-    let lunarRoundUsed = null; // 1 eller 2 hvis vi bruger LUNAR-data
+    let lunarRoundUsed = null;
 
-    // LUNAR runde 1/2 override
+    // LUNAR round 1/2 overrides
     if (isLunar) {
       let r2 = Array.isArray(lunarRound2)
         ? lunarRound2.find(e => e.courtId === c.courtId)
@@ -567,15 +598,12 @@ app.get("/api/courts", (req, res) => {
         usedHomeIdx2 = p.homeIdx2 ?? null;
         usedAwayIdx1 = p.awayIdx1 ?? null;
         usedAwayIdx2 = p.awayIdx2 ?? null;
-        // lunarRoundUsed lader vi være – frontenden håndterer badge-tekst ift. SUPER
       }
     }
 
-    // admin-fritekst overskriver basisnavne
     if (c.adminHomeName) effHome = c.adminHomeName;
     if (c.adminAwayName) effAway = c.adminAwayName;
 
-    // spillerliste-navne overskriver
     const fromHomeRoster = buildNameFromIndices("home", usedHomeIdx1, usedHomeIdx2);
     const fromAwayRoster = buildNameFromIndices("away", usedAwayIdx1, usedAwayIdx2);
 
