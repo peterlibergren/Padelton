@@ -821,13 +821,20 @@ function renderLunarSummary(lunarResults) {
           ? adminState.lunarResults
           : [];
 
-        // Slutskærm når LUNAR aktiv + mindst 1 bane + min. 6 vundne kampe i alt
-        const finishedCount = homeTotal + awayTotal;
+        // Brug antal registrerede LUNAR-kampe i stedet for kun total-wins
+        const resultsCount = lunarResults.length;
+
+        // Slutskærm når:
+        //  - LUNAR er aktiv
+        //  - der er valgt mindst én bane
+        //  - der er registreret mindst 2 runder á antal LUNAR-baner
+        //    (typisk 3 baner → 6 kampe)
         const showSummary =
           lunarEnabled &&
           Array.isArray(lunarCourts) &&
           lunarCourts.length > 0 &&
-          finishedCount >= 6;
+          resultsCount >= lunarCourts.length * 2;
+
 
         if (showSummary) {
           // Skjul banekort og info-tekst, vis slutskærm
