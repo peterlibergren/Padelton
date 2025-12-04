@@ -373,14 +373,6 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
-
-    .summary-row-home-winner .summary-player-main,
-    .summary-row-home-winner .summary-player-sub,
-    .summary-row-away-winner .summary-player-main,
-    .summary-row-away-winner .summary-player-sub {
-      font-weight: 700;
-      color: #22c55e;
-    }
   </style>
 </head>
 <body>
@@ -397,11 +389,11 @@
   <main>
     <section class="courts-list" id="courtsList"></section>
 
-    <!-- LUNAR slutskærm (vises når alle kampe er færdige) -->
+    <!-- LUNAR slutskærm -->
     <section id="lunarSummary" class="lunar-summary hidden">
       <h2 class="lunar-summary-title">LUNAR – Slutresultat</h2>
       <p class="lunar-summary-subtitle">
-        Oversigt over alle LUNAR-kampe (Runde 1, Runde 2 og evt. 7. kamp).
+        Resultater fra LUNAR runde 1, runde 2 og evt. 7. kamp.
       </p>
       <div id="lunarSummaryContent"></div>
     </section>
@@ -542,7 +534,7 @@
     function parseSetsStr(setsStr) {
       if (!setsStr || typeof setsStr !== "string") return [];
       return setsStr
-        .split(",")
+        .split(/[;,]/)                 // tillad både komma og semikolon
         .map(t => t.trim())
         .filter(Boolean)
         .map(t => {
@@ -554,7 +546,7 @@
         });
     }
 
-    // LUNAR slutskærm – “Lunar runde 1: ...” layout
+    // LUNAR slutskærm – layout som i dit eksempel
     function renderLunarSummary(lunarResults) {
       const container = document.getElementById("lunarSummaryContent");
       if (!container) return;
@@ -562,11 +554,11 @@
       container.innerHTML = "";
 
       if (!Array.isArray(lunarResults) || lunarResults.length === 0) {
-        container.textContent = "Ingen resultater endnu.";
+        container.textContent = "Ingen LUNAR-resultater.";
         return;
       }
 
-      // Sorter efter runde (1,2,7) og bane-id
+      // Sorter efter runde (1,2,7) og bane
       const sorted = [...lunarResults].sort((a, b) => {
         const ra = a.round ?? 0;
         const rb = b.round ?? 0;
@@ -617,7 +609,7 @@
             }
           }
 
-          // Split spillernavne i 2 linjer
+          // Split spillernavne i 2 linjer pr. hold
           const homeName = m.homeName || "Hjemme";
           const awayName = m.awayName || "Ude";
 
@@ -626,7 +618,6 @@
 
           const homeMain = homeParts[0] || homeName;
           const homeSub  = homeParts[1] || "";
-
           const awayMain = awayParts[0] || awayName;
           const awaySub  = awayParts[1] || "";
 
@@ -658,63 +649,87 @@
 
           const tbody = document.createElement("tbody");
 
-          // Hjemme-række
-          const trHome = document.createElement("tr");
-          if (m.winner === 1) trHome.classList.add("summary-row-home-winner");
-
-          const tdHomeName = document.createElement("td");
+          // Hjemme spiller x – med scores
+          const trHome1 = document.createElement("tr");
+          const tdHomeMain = document.createElement("td");
           const homeMainSpan = document.createElement("div");
           homeMainSpan.className = "summary-player-main";
           homeMainSpan.textContent = homeMain;
-          const homeSubSpan = document.createElement("div");
-          homeSubSpan.className = "summary-player-sub";
-          homeSubSpan.textContent = homeSub;
-          tdHomeName.appendChild(homeMainSpan);
-          if (homeSub) tdHomeName.appendChild(homeSubSpan);
-          trHome.appendChild(tdHomeName);
+          tdHomeMain.appendChild(homeMainSpan);
+          trHome1.appendChild(tdHomeMain);
 
           const tdH1 = document.createElement("td");
           tdH1.textContent = homeVals[0] || "";
-          trHome.appendChild(tdH1);
-
+          trHome1.appendChild(tdH1);
           const tdH2 = document.createElement("td");
           tdH2.textContent = homeVals[1] || "";
-          trHome.appendChild(tdH2);
-
+          trHome1.appendChild(tdH2);
           const tdH3 = document.createElement("td");
           tdH3.textContent = homeVals[2] || "";
-          trHome.appendChild(tdH3);
+          trHome1.appendChild(tdH3);
 
-          tbody.appendChild(trHome);
+          tbody.appendChild(trHome1);
 
-          // Ude-række
-          const trAway = document.createElement("tr");
-          if (m.winner === 2) trAway.classList.add("summary-row-away-winner");
+          // Hjemme spiller y – kun navn
+          if (homeSub) {
+            const trHome2 = document.createElement("tr");
+            const tdHomeSub = document.createElement("td");
+            const homeSubSpan = document.createElement("div");
+            homeSubSpan.className = "summary-player-sub";
+            homeSubSpan.textContent = homeSub;
+            tdHomeSub.appendChild(homeSubSpan);
+            trHome2.appendChild(tdHomeSub);
 
-          const tdAwayName = document.createElement("td");
+            const tdEmptyH1 = document.createElement("td");
+            const tdEmptyH2 = document.createElement("td");
+            const tdEmptyH3 = document.createElement("td");
+            trHome2.appendChild(tdEmptyH1);
+            trHome2.appendChild(tdEmptyH2);
+            trHome2.appendChild(tdEmptyH3);
+
+            tbody.appendChild(trHome2);
+          }
+
+          // Ude spiller x – med scores
+          const trAway1 = document.createElement("tr");
+          const tdAwayMain = document.createElement("td");
           const awayMainSpan = document.createElement("div");
           awayMainSpan.className = "summary-player-main";
           awayMainSpan.textContent = awayMain;
-          const awaySubSpan = document.createElement("div");
-          awaySubSpan.className = "summary-player-sub";
-          awaySubSpan.textContent = awaySub;
-          tdAwayName.appendChild(awayMainSpan);
-          if (awaySub) tdAwayName.appendChild(awaySubSpan);
-          trAway.appendChild(tdAwayName);
+          tdAwayMain.appendChild(awayMainSpan);
+          trAway1.appendChild(tdAwayMain);
 
           const tdA1 = document.createElement("td");
           tdA1.textContent = awayVals[0] || "";
-          trAway.appendChild(tdA1);
-
+          trAway1.appendChild(tdA1);
           const tdA2 = document.createElement("td");
           tdA2.textContent = awayVals[1] || "";
-          trAway.appendChild(tdA2);
-
+          trAway1.appendChild(tdA2);
           const tdA3 = document.createElement("td");
           tdA3.textContent = awayVals[2] || "";
-          trAway.appendChild(tdA3);
+          trAway1.appendChild(tdA3);
 
-          tbody.appendChild(trAway);
+          tbody.appendChild(trAway1);
+
+          // Ude spiller y – kun navn
+          if (awaySub) {
+            const trAway2 = document.createElement("tr");
+            const tdAwaySub = document.createElement("td");
+            const awaySubSpan = document.createElement("div");
+            awaySubSpan.className = "summary-player-sub";
+            awaySubSpan.textContent = awaySub;
+            tdAwaySub.appendChild(awaySubSpan);
+            trAway2.appendChild(tdAwaySub);
+
+            const tdEmptyA1 = document.createElement("td");
+            const tdEmptyA2 = document.createElement("td");
+            const tdEmptyA3 = document.createElement("td");
+            trAway2.appendChild(tdEmptyA1);
+            trAway2.appendChild(tdEmptyA2);
+            trAway2.appendChild(tdEmptyA3);
+
+            tbody.appendChild(trAway2);
+          }
 
           table.appendChild(tbody);
           card.appendChild(table);
@@ -762,12 +777,11 @@
         const awayTotal = Number(adminState.lunarAwayWinsTotal ?? 0);
         updateTeamStanding(lunarEnabled, lunarCourts, homeTotal, awayTotal);
 
-        // Slutskærm: brug lunarResults fra adminState
         const lunarResults = Array.isArray(adminState.lunarResults)
           ? adminState.lunarResults
           : [];
 
-        // Kriterie: LUNAR aktiv + minst én LUNAR-bane + mindst 6 vundne kampe i alt
+        // Slutskærm når LUNAR aktiv + mindst 1 bane + min. 6 vundne kampe i alt
         const finishedCount = homeTotal + awayTotal;
         const showSummary =
           lunarEnabled &&
@@ -783,33 +797,31 @@
             summaryEl.classList.remove("hidden");
             renderLunarSummary(lunarResults);
           }
+
+          // Skjul også individuelle kort
+          courts.forEach(court => {
+            const cardEl = document.getElementById(`court-${court.id}`);
+            if (cardEl) cardEl.style.display = "none";
+          });
+
+          return; // Ingen grund til at opdatere live-score
         } else {
-          // Normal live-score visning
           if (courtsSection) courtsSection.classList.remove("hidden");
           if (infoCard) infoCard.classList.remove("hidden");
           if (summaryEl) summaryEl.classList.add("hidden");
         }
 
-        // Vis/skjul baner ift. LUNAR (kun relevant hvis vi IKKE er på slutskærm)
+        // Vis/skjul baner ift. LUNAR i normal visning
         courts.forEach(court => {
           const cardEl = document.getElementById(`court-${court.id}`);
           if (!cardEl) return;
 
-          if (!showSummary) {
-            if (lunarEnabled && lunarCourts.length > 0) {
-              cardEl.style.display = lunarCourts.includes(court.id) ? "" : "none";
-            } else {
-              cardEl.style.display = "";
-            }
+          if (lunarEnabled && lunarCourts.length > 0) {
+            cardEl.style.display = lunarCourts.includes(court.id) ? "" : "none";
           } else {
-            cardEl.style.display = "none";
+            cardEl.style.display = "";
           }
         });
-
-        // Hvis vi viser slutskærm, behøver vi ikke opdatere banekortene
-        if (showSummary) {
-          return;
-        }
 
         // Skal SUPER MATCH-TIE badge være aktiv?
         const superShouldBeVisible =
@@ -819,7 +831,7 @@
           homeTotal === 3 &&
           awayTotal === 3;
 
-        // Opdater hvert banekort
+        // Opdater hvert banekort (live)
         data.forEach(c => {
           const id = c.courtId;
 
