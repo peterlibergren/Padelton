@@ -33,33 +33,31 @@
       text-transform: uppercase;
     }
 
-    /* NYT: Stilling-linje under logoet */
-.team-standing {
-  margin-top: 6px;
-  font-size: clamp(1.4rem, 3.2vw, 2rem); /* større tekst */
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #e5e7eb;
-}
+    /* Stilling-linje under logoet */
+    .team-standing {
+      margin-top: 6px;
+      font-size: clamp(1.4rem, 3.2vw, 2rem);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #e5e7eb;
+    }
 
-.team-standing span {
-  display: inline-block;
-  min-width: 1.6em;
-  text-align: center;
-}
+    .team-standing span {
+      display: inline-block;
+      min-width: 1.6em;
+      text-align: center;
+    }
 
-/* NYT: farver på scoretal */
-#standingHome {
-  color: #22c55e;  /* grøn */
-  font-weight: 800;
-}
+    #standingHome {
+      color: #22c55e;
+      font-weight: 800;
+    }
 
-#standingAway {
-  color: #ef4444;  /* rød */
-  font-weight: 800;
-}
-
+    #standingAway {
+      color: #ef4444;
+      font-weight: 800;
+    }
 
     .team-standing-label {
       opacity: 0.8;
@@ -68,8 +66,7 @@
 
     .hidden {
       display: none !important;
-}
-
+    }
 
     main {
       flex: 1;
@@ -147,11 +144,17 @@
     }
 
     .team-home .team-label {
-      color: #22c55e; /* rigtig grøn */
+      color: #22c55e;
     }
 
     .team-away .team-label {
-      color: #ef4444; /* rigtig rød */
+      color: #ef4444;
+    }
+
+    /* Vindende hold highlight */
+    .team-winner {
+      box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.9);
+      border-radius: 12px;
     }
 
     /* 5-kolonne layout: Navn | Sæt1 | Sæt2 | Point | Partier */
@@ -160,8 +163,6 @@
       grid-template-columns: minmax(0, 3fr) repeat(4, minmax(0, 1fr));
       gap: 4px;
       align-items: stretch;
-
-      /* STØRRE TAL I SCORE-FELTERNE */
       font-size: clamp(1.2rem, 3.2vw, 1.6rem);
     }
 
@@ -170,15 +171,12 @@
       border-radius: 8px;
       background: rgba(15, 23, 42, 0.9);
       border: 1px solid rgba(148, 163, 184, 0.5);
-
-      /* CENTRER TEKSTEN I BOKSEN (HOR & VERT) */
       display: flex;
       align-items: center;
       justify-content: center;
       text-align: center;
     }
 
-    /* Navnefeltet – venstrejusteret, men stadig vertikalt centreret */
     .score-cell-name {
       display: flex;
       flex-direction: column;
@@ -190,8 +188,7 @@
 
     .player-name,
     .player-sub {
-      /* lidt mindre end tallene, så navne ikke fylder for meget */
-      font-size: clamp(1.0rem, 2.2vw, 1.1rem);
+      font-size: clamp(1rem, 2.2vw, 1.1rem);
       line-height: 1.2;
       white-space: nowrap;
       text-overflow: ellipsis;
@@ -204,29 +201,24 @@
       opacity: 0.9;
     }
 
-    /* Sæt-kolonner */
     .score-set {
       font-weight: 600;
       background: rgba(15, 23, 42, 0.9);
     }
 
-    /* Vinder-sæt (færdigspillede sæt) – grå baggrund i stedet for fed skrift */
     .set-winner {
-      background: rgba(75, 85, 99, 0.95);      /* mørk grå (ala slate-600) */
-      border-color: rgba(156, 163, 175, 0.95); /* lidt lysere kant */
-      color: #f9fafb;                          /* næsten hvid tekst */
-      /* ingen font-weight her → bruger samme som .score-set (600) */
+      background: rgba(75, 85, 99, 0.95);
+      border-color: rgba(156, 163, 175, 0.95);
+      color: #f9fafb;
     }
 
-    /* Point-kolonne – gul med sort tekst */
     .score-points {
       background: #facc15;
       color: #111827;
       font-weight: 700;
-      font-size: 1.2em; /* gør point en tand større end de andre */
+      font-size: 1.2em;
     }
 
-    /* Partier-kolonne */
     .score-games {
       font-weight: 700;
       background: rgba(30, 64, 175, 0.9);
@@ -247,6 +239,14 @@
       margin-top: 2px;
     }
 
+    .sets-summary,
+    .match-format {
+      margin-left: 8px;
+      opacity: 0.85;
+      font-size: 0.7rem;
+      white-space: nowrap;
+    }
+
     .info-card {
       max-width: 900px;
       margin: 0 auto 24px;
@@ -255,37 +255,34 @@
       text-align: center;
       opacity: 0.85;
     }
+
     .lunar-badge,
-.super-badge {
-  display: inline-block;
-  margin-left: 6px;
-  padding: 2px 6px;
-  border-radius: 999px;
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
+    .super-badge {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
 
-.lunar-badge {
-  background: rgba(56, 189, 248, 0.12);  /* cyan-ish */
-  border: 1px solid rgba(56, 189, 248, 0.6);
-  color: #e0f2fe;
-}
+    .lunar-badge {
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.6);
+      color: #e0f2fe;
+    }
 
-.super-badge {
-  background: rgba(234, 179, 8, 0.18);   /* gul-ish */
-  border: 1px solid rgba(234, 179, 8, 0.8);
-  color: #fef9c3;
-}
-
-
-    
+    .super-badge {
+      background: rgba(234, 179, 8, 0.18);
+      border: 1px solid rgba(234, 179, 8, 0.8);
+      color: #fef9c3;
+    }
   </style>
 </head>
 <body>
   <header>
     <h1>PADELTON</h1>
-    <!-- NYT: samlet LUNAR-stilling -->
     <div id="teamStanding" class="team-standing hidden">
       <span class="team-standing-label">Stilling:</span>
       <span id="standingHome">0</span>
@@ -295,9 +292,7 @@
   </header>
 
   <main>
-    <section class="courts-list" id="courtsList">
-      <!-- Banekort indsættes her via JS -->
-    </section>
+    <section class="courts-list" id="courtsList"></section>
 
     <div class="info-card">
       Live scoreboard • Opdateres automatisk hvert sekund
@@ -305,7 +300,6 @@
   </main>
 
   <script>
-    // HTML er hostet samme sted som API'et -> samme origin
     const BASE_URL = "";
 
     const courts = [
@@ -325,14 +319,14 @@
       card.id = `court-${court.id}`;
 
       card.innerHTML = `
-  <div class="court-header">
-    <div class="court-title">
-      ${court.sponsor}
-      <span class="lunar-badge hidden" id="lunarBadge-${court.id}">LUNAR</span>
-      <span class="super-badge hidden" id="superBadge-${court.id}">SUPER MATCH-TIE</span>
-    </div>
-    <span class="court-status-tag" id="status-${court.id}">Opdaterer…</span>
-  </div>
+        <div class="court-header">
+          <div class="court-title">
+            ${court.sponsor}
+            <span class="lunar-badge hidden" id="lunarBadge-${court.id}">LUNAR</span>
+            <span class="super-badge hidden" id="superBadge-${court.id}">SUPER MATCH-TIE</span>
+          </div>
+          <span class="court-status-tag" id="status-${court.id}">Opdaterer…</span>
+        </div>
 
         <div class="teams">
           <!-- Hjemmehold -->
@@ -368,6 +362,8 @@
 
         <div class="court-footer">
           <span>Sidst opdateret: <span id="updated-${court.id}">–</span></span>
+          <span class="sets-summary" id="setsSummary-${court.id}"></span>
+          <span class="match-format" id="format-${court.id}"></span>
         </div>
       `;
 
@@ -384,39 +380,24 @@
       const h = c[homeKey];
       const a = c[awayKey];
 
-      // Hvis sættet ikke er registreret, vis "–"
       if (h == null || a == null || h < 0 || a < 0) {
         return { home: "–", away: "–" };
       }
 
-      const tb  = c[tbKey];
+      const tb = c[tbKey];
       const lIsHome = !!c[lhKey];
 
-      // Ingen tie-break info -> bare rene tal
       if (tb == null || tb < 0) {
-        return {
-          home: String(h),
-          away: String(a),
-        };
+        return { home: String(h), away: String(a) };
       }
 
-      // Der var tie-break / match-tie, taber får parentes-score
       if (lIsHome) {
-        // hjemmehold tabte sættet i TB
-        return {
-          home: `${h}(${tb})`,
-          away: String(a),
-        };
+        return { home: `${h}(${tb})`, away: String(a) };
       } else {
-        // udehold tabte sættet i TB
-        return {
-          home: String(h),
-          away: `${a}(${tb})`,
-        };
+        return { home: String(h), away: `${a}(${tb})` };
       }
     }
 
-    // NYT: opdater samlet LUNAR-stilling
     function updateTeamStanding(courtsData, lunarEnabled, lunarCourts) {
       const standingEl = document.getElementById("teamStanding");
       const homeSpan = document.getElementById("standingHome");
@@ -442,7 +423,6 @@
         const hs = typeof c.homeSets === "number" ? c.homeSets : 0;
         const as = typeof c.awaySets === "number" ? c.awaySets : 0;
 
-        // Antagelse: 1 sæt = 1 vunden kamp i LUNAR-formatet
         homeWins += hs;
         awayWins += as;
       });
@@ -452,7 +432,6 @@
       standingEl.classList.remove("hidden");
     }
 
-    // Hent adminState + ALLE baner og opdater UI
     async function updateAllCourts() {
       try {
         const [adminResp, courtsResp] = await Promise.all([
@@ -460,70 +439,60 @@
           fetch(BASE_URL + "/api/courts", { cache: "no-store" }),
         ]);
 
-        if (!adminResp.ok) {
-          throw new Error("HTTP adminState " + adminResp.status);
-        }
-        if (!courtsResp.ok) {
-          throw new Error("HTTP courts " + courtsResp.status);
-        }
+        if (!adminResp.ok) throw new Error("HTTP adminState " + adminResp.status);
+        if (!courtsResp.ok) throw new Error("HTTP courts " + courtsResp.status);
 
         const adminState = await adminResp.json();
-        const data = await courtsResp.json(); // array med court-objekter
+        const data = await courtsResp.json();
 
-let lunarEnabled = false;
-let lunarCourts = [];
+        let lunarEnabled = false;
+        let lunarCourts = [];
 
-try {
-  lunarEnabled = !!adminState.lunarEnabled;
-  lunarCourts = Array.isArray(adminState.lunarCourts)
-    ? adminState.lunarCourts.map(Number).filter(n => Number.isFinite(n))
-    : [];
-} catch (e) {
-  console.warn("Kunne ikke læse LUNAR-felter fra adminState:", e);
-  lunarEnabled = false;
-  lunarCourts = [];
-}
+        try {
+          lunarEnabled = !!adminState.lunarEnabled;
+          lunarCourts = Array.isArray(adminState.lunarCourts)
+            ? adminState.lunarCourts.map(Number).filter(n => Number.isFinite(n))
+            : [];
+        } catch (e) {
+          console.warn("Kunne ikke læse LUNAR-felter fra adminState:", e);
+          lunarEnabled = false;
+          lunarCourts = [];
+        }
 
-// Debug-log (du kan se det i browserens DevTools -> Console)
-console.log("LUNAR:", { lunarEnabled, lunarCourts });
+        // Vis/skjul baner ift. LUNAR
+        courts.forEach(court => {
+          const cardEl = document.getElementById(`court-${court.id}`);
+          if (!cardEl) return;
 
-// Skjul/vis banekort efter LUNAR-opsætning
-courts.forEach(court => {
-  const cardEl = document.getElementById(`court-${court.id}`);
-  if (!cardEl) return;
+          if (lunarEnabled && lunarCourts.length > 0) {
+            cardEl.style.display = lunarCourts.includes(court.id) ? "" : "none";
+          } else {
+            cardEl.style.display = "";
+          }
+        });
 
-  // Kun hvis LUNAR er aktiv OG der faktisk er valgt baner
-  if (lunarEnabled && lunarCourts.length > 0) {
-    cardEl.style.display = lunarCourts.includes(court.id) ? "" : "none";
-  } else {
-    // fallback: vis alle baner
-    cardEl.style.display = "";
-  }
-});
+        // Beregn stilling til SUPER MATCH-TIE
+        let homeWinsForSuper = 0;
+        let awayWinsForSuper = 0;
 
-        // Beregn nuværende LUNAR-stilling (til at styre SUPER MATCH-TIE)
-let homeWinsForSuper = 0;
-let awayWinsForSuper = 0;
+        if (lunarEnabled && Array.isArray(lunarCourts) && lunarCourts.length > 0) {
+          data.forEach(c => {
+            if (!lunarCourts.includes(c.courtId)) return;
 
-if (lunarEnabled && Array.isArray(lunarCourts) && lunarCourts.length > 0) {
-  data.forEach(c => {
-    if (!lunarCourts.includes(c.courtId)) return;
+            const hs = typeof c.homeSets === "number" ? c.homeSets : 0;
+            const as = typeof c.awaySets === "number" ? c.awaySets : 0;
 
-    const hs = typeof c.homeSets === "number" ? c.homeSets : 0;
-    const as = typeof c.awaySets === "number" ? c.awaySets : 0;
+            homeWinsForSuper += hs;
+            awayWinsForSuper += as;
+          });
+        }
 
-    homeWinsForSuper += hs;
-    awayWinsForSuper += as;
-  });
-}
-
-const superShouldBeVisible =
-  lunarEnabled &&
-  Array.isArray(lunarCourts) &&
-  lunarCourts.length > 0 &&
-  homeWinsForSuper === 3 &&
-  awayWinsForSuper === 3;
-
+        const superShouldBeVisible =
+          lunarEnabled &&
+          Array.isArray(lunarCourts) &&
+          lunarCourts.length > 0 &&
+          homeWinsForSuper === 3 &&
+          awayWinsForSuper === 3;
 
         data.forEach(c => {
           const id = c.courtId;
@@ -546,53 +515,61 @@ const superShouldBeVisible =
 
           const updatedEl    = document.getElementById(`updated-${id}`);
 
- const lunarBadgeEl = document.getElementById(`lunarBadge-${id}`);
-const superBadgeEl = document.getElementById(`superBadge-${id}`);
+          const teamHomeEl    = document.querySelector(`#court-${id} .team-home`);
+          const teamAwayEl    = document.querySelector(`#court-${id} .team-away`);
+          const setsSummaryEl = document.getElementById(`setsSummary-${id}`);
+          const formatEl      = document.getElementById(`format-${id}`);
 
-// LUNAR badge + runde
-if (lunarBadgeEl) {
-  if (c.isLunar) {
-    lunarBadgeEl.classList.remove("hidden");
+          const lunarBadgeEl = document.getElementById(`lunarBadge-${id}`);
+          const superBadgeEl = document.getElementById(`superBadge-${id}`);
 
-    if (c.isSuperMatchTie && superShouldBeVisible) {
-      // 7. kamp: altid bare "LUNAR"
-      lunarBadgeEl.textContent = "LUNAR";
-    } else if (c.lunarRoundUsed === 1 || c.lunarRoundUsed === 2) {
-      lunarBadgeEl.textContent = `LUNAR R${c.lunarRoundUsed}`;
-    } else {
-      lunarBadgeEl.textContent = "LUNAR";
-    }
-  } else {
-    lunarBadgeEl.classList.add("hidden");
-  }
-}
+          if (!statusEl) return;
 
-// SUPER MATCH-TIE badge
-if (superBadgeEl) {
-  if (c.isSuperMatchTie && superShouldBeVisible) {
-    superBadgeEl.classList.remove("hidden");
-  } else {
-    superBadgeEl.classList.add("hidden");
-  }
-}
+          // LUNAR badges
+          if (lunarBadgeEl) {
+            if (c.isLunar) {
+              lunarBadgeEl.classList.remove("hidden");
 
-          if (!statusEl) return; // banen findes ikke i layoutet
+              if (c.isSuperMatchTie && superShouldBeVisible) {
+                lunarBadgeEl.textContent = "LUNAR";
+              } else if (c.lunarRoundUsed === 1 || c.lunarRoundUsed === 2) {
+                lunarBadgeEl.textContent = `LUNAR R${c.lunarRoundUsed}`;
+              } else {
+                lunarBadgeEl.textContent = "LUNAR";
+              }
+            } else {
+              lunarBadgeEl.classList.add("hidden");
+            }
+          }
 
-          // Kamp-status (hvis din backend sender hasMatch; ellers kan vi falde tilbage)
+          if (superBadgeEl) {
+            if (c.isSuperMatchTie && superShouldBeVisible) {
+              superBadgeEl.classList.remove("hidden");
+            } else {
+              superBadgeEl.classList.add("hidden");
+            }
+          }
+
           const hasMatch = c.hasMatch !== undefined ? c.hasMatch : true;
+          const matchFinished = !!c.matchFinished;
+          const winner = typeof c.winner === "number" ? c.winner : 0;
+          const mtb3rd = !!c.mtb3rd;
 
           if (!hasMatch) {
             statusEl.textContent = "Ingen kamp";
             statusEl.classList.remove("error");
-          } else if (c.online) {
-            statusEl.textContent = "I gang";
-            statusEl.classList.remove("error");
-          } else {
+          } else if (!c.online) {
             statusEl.textContent = "Ingen forbindelse";
             statusEl.classList.add("error");
+          } else if (matchFinished) {
+            statusEl.textContent = "Slut";
+            statusEl.classList.remove("error");
+          } else {
+            statusEl.textContent = "I gang";
+            statusEl.classList.remove("error");
           }
 
-          // Holdnavne -> split til spiller 1/2
+          // Navne -> split til spiller 1/2
           const homeRaw = c.homeName || "Hjemme";
           const awayRaw = c.awayName || "Ude";
 
@@ -614,22 +591,20 @@ if (superBadgeEl) {
           if (homeSet2El) homeSet2El.textContent = set2.home;
           if (awaySet2El) awaySet2El.textContent = set2.away;
 
-          // --- RESET vinder-klasser ---
+          // Reset set-winner-klasser
           if (homeSet1El) homeSet1El.classList.remove("set-winner");
           if (awaySet1El) awaySet1El.classList.remove("set-winner");
           if (homeSet2El) homeSet2El.classList.remove("set-winner");
           if (awaySet2El) awaySet2El.classList.remove("set-winner");
 
-          // --- FIND VINDER I SÆT 1 ---
+          // Vinder i sæt 1
           const s1hVal = c.set1Home;
           const s1aVal = c.set1Away;
-          if (
-            typeof s1hVal === "number" &&
-            typeof s1aVal === "number" &&
-            s1hVal >= 0 &&
-            s1aVal >= 0 &&
-            s1hVal !== s1aVal
-          ) {
+          if (typeof s1hVal === "number" &&
+              typeof s1aVal === "number" &&
+              s1hVal >= 0 &&
+              s1aVal >= 0 &&
+              s1hVal !== s1aVal) {
             if (s1hVal > s1aVal) {
               homeSet1El && homeSet1El.classList.add("set-winner");
             } else {
@@ -637,16 +612,14 @@ if (superBadgeEl) {
             }
           }
 
-          // --- FIND VINDER I SÆT 2 ---
+          // Vinder i sæt 2
           const s2hVal = c.set2Home;
           const s2aVal = c.set2Away;
-          if (
-            typeof s2hVal === "number" &&
-            typeof s2aVal === "number" &&
-            s2hVal >= 0 &&
-            s2aVal >= 0 &&
-            s2hVal !== s2aVal
-          ) {
+          if (typeof s2hVal === "number" &&
+              typeof s2aVal === "number" &&
+              s2hVal >= 0 &&
+              s2aVal >= 0 &&
+              s2hVal !== s2aVal) {
             if (s2hVal > s2aVal) {
               homeSet2El && homeSet2El.classList.add("set-winner");
             } else {
@@ -654,7 +627,19 @@ if (superBadgeEl) {
             }
           }
 
-          // Point (brug tekststrenge fra bane-ESP, fx 0,15,30,40,Ad)
+          // Reset kamp-vinder highlight
+          if (teamHomeEl) teamHomeEl.classList.remove("team-winner");
+          if (teamAwayEl) teamAwayEl.classList.remove("team-winner");
+
+          if (matchFinished && hasMatch) {
+            if (winner === 1 && teamHomeEl) {
+              teamHomeEl.classList.add("team-winner");
+            } else if (winner === 2 && teamAwayEl) {
+              teamAwayEl.classList.add("team-winner");
+            }
+          }
+
+          // Point
           if (homePointsEl) {
             const hpStr = c.homePointsStr ?? null;
             homePointsEl.textContent = (hpStr !== null && hpStr !== undefined)
@@ -673,6 +658,24 @@ if (superBadgeEl) {
           if (homeGamesEl) homeGamesEl.textContent = String(c.homeGames ?? 0);
           if (awayGamesEl) awayGamesEl.textContent = String(c.awayGames ?? 0);
 
+          // Samlet sætresumé
+          if (setsSummaryEl) {
+            if (c.setsStr && c.setsStr.trim() !== "") {
+              setsSummaryEl.textContent = "• " + c.setsStr;
+            } else {
+              setsSummaryEl.textContent = "";
+            }
+          }
+
+          // 3. sæt-format
+          if (formatEl) {
+            if (mtb3rd) {
+              formatEl.textContent = "• 3. sæt: match-tie (10)";
+            } else {
+              formatEl.textContent = "";
+            }
+          }
+
           // Tidsstempel
           if (updatedEl) {
             const now = new Date();
@@ -685,11 +688,10 @@ if (superBadgeEl) {
           }
         });
 
-        // Opdater samlet LUNAR-stilling
         updateTeamStanding(data, lunarEnabled, lunarCourts);
       } catch (err) {
         console.error("Fejl ved hentning af courts/adminState:", err);
-        // Hvis API ikke svarer, markér alle som "Ingen forbindelse"
+
         courts.forEach(court => {
           const statusEl = document.getElementById(`status-${court.id}`);
           if (statusEl) {
@@ -698,13 +700,11 @@ if (superBadgeEl) {
           }
         });
 
-        // Skjul stilling
         const standingEl = document.getElementById("teamStanding");
         if (standingEl) standingEl.classList.add("hidden");
       }
     }
 
-    // Første opdatering + interval
     updateAllCourts();
     setInterval(updateAllCourts, 1000);
   </script>
