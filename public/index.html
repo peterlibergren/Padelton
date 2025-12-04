@@ -33,7 +33,7 @@
       text-transform: uppercase;
     }
 
-    /* Stilling-linje under  logoet */
+    /* Stilling-linje under logoet */
     .team-standing {
       margin-top: 6px;
       font-size: clamp(1.4rem, 3.2vw, 2rem);
@@ -300,7 +300,6 @@
   </main>
 
   <script>
-    // HTML og API ligger samme sted
     const BASE_URL = "";
 
     const courts = [
@@ -456,7 +455,6 @@
         }
 
         // Vis/skjul baner ift. LUNAR
-        // Vis/skjul baner ift. LUNAR
         courts.forEach(court => {
           const cardEl = document.getElementById(`court-${court.id}`);
           if (!cardEl) return;
@@ -468,21 +466,18 @@
           }
         });
 
-        // LUNAR total-stilling (antal vundne kampe) kommer fra adminState
+        // Global LUNAR-stilling (antal vundne kampe)
         const homeTotal = Number(adminState.lunarHomeWinsTotal ?? 0);
         const awayTotal = Number(adminState.lunarAwayWinsTotal ?? 0);
-
-        // Opdater visningen øverst
         updateTeamStanding(lunarEnabled, lunarCourts, homeTotal, awayTotal);
 
-        // SUPER MATCH-TIE badge skal kun være synlig ved 3-3 kampe
+        // Skal SUPER MATCH-TIE badge være aktiv?
         const superShouldBeVisible =
           lunarEnabled &&
           Array.isArray(lunarCourts) &&
           lunarCourts.length > 0 &&
           homeTotal === 3 &&
           awayTotal === 3;
-
 
         // Opdater hvert banekort
         data.forEach(c => {
@@ -678,11 +673,6 @@
             updatedEl.textContent = timeStr;
           }
         });
-
-        // LUNAR totalstilling (antal vundne kampe samlet)
-        const homeTotal = adminState.lunarHomeWinsTotal ?? 0;
-        const awayTotal = adminState.lunarAwayWinsTotal ?? 0;
-        //updateTeamStanding(lunarEnabled, lunarCourts, homeTotal, awayTotal);
 
       } catch (err) {
         console.error("Fejl ved hentning af courts/adminState:", err);
