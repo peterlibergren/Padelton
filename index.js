@@ -57,7 +57,12 @@ for (let i = 1; i <= 5; i++) {
 
     // valgfri fritekst
     setsStr: "",
-
+    
+ // NYT: kampstatus
+    matchFinished: false,   // true = kampen er slut
+    winner: 0,              // 0 = ingen, 1 = hjemme, 2 = ude
+    mtb3rd: false,          // true = 3. sæt er match-tiebreak til 10
+    
     online: false,
     lastUpdate: 0,
   };
@@ -125,6 +130,12 @@ app.post("/api/updateScore", (req, res) => {
 
     // valgfri samlet streng
     setsStr,
+
+    // NYT: kampstatus + 3. sæt-format
+    matchFinished,
+    winner,
+    mtb3rd,
+    
   } = req.body || {};
 
   if (!courtId || courtId < 1 || courtId > 5) {
@@ -185,6 +196,16 @@ app.post("/api/updateScore", (req, res) => {
       typeof setsStr === "string" ? setsStr : setsStr != null ? String(setsStr) : "";
   }
 
+  // NYT: kampstatus + vinder + 3. sæt-format
+  if (matchFinished !== undefined) {
+    c.matchFinished = toBool(matchFinished, false);
+  }
+  if (winner !== undefined) {
+    c.winner = toIntOrDefault(winner, 0); // 0,1,2
+  }
+  if (mtb3rd !== undefined) {
+    c.mtb3rd = toBool(mtb3rd, false);
+  }
   c.lastUpdate = Date.now();
   c.online = true;
 
