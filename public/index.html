@@ -326,56 +326,60 @@
       border-radius: 10px;
       background: rgba(15, 23, 42, 0.9);
       border: 1px solid rgba(75, 85, 99, 0.9);
-      display: grid;
-      grid-template-columns: minmax(0, 2.2fr) minmax(0, 2.4fr);
-      gap: 4px 10px;
-      align-items: center;
     }
 
     .summary-match-header {
-      font-size: 0.78rem;
+      font-size: 0.8rem;
       text-transform: uppercase;
       letter-spacing: 0.12em;
       opacity: 0.9;
+      margin-bottom: 4px;
     }
 
-    .summary-sets-score {
-      font-size: 0.78rem;
-      text-align: right;
-      opacity: 0.95;
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
     }
 
-    .summary-names {
-      grid-column: 1 / span 2;
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 6px;
-      font-size: 0.92rem;
+    .summary-table th,
+    .summary-table td {
+      padding: 3px 4px;
+      text-align: center;
     }
 
-    .summary-home,
-    .summary-away {
+    .summary-table th:first-child,
+    .summary-table td:first-child {
+      text-align: left;
+      width: 55%;
+    }
+
+    .summary-header-row th {
+      font-weight: 600;
+      opacity: 0.9;
+      font-size: 0.76rem;
+    }
+
+    .summary-player-main {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 46%;
     }
 
-    .summary-vs {
-      font-size: 0.8rem;
-      opacity: 0.8;
+    .summary-player-sub {
+      font-size: 0.74rem;
+      opacity: 0.85;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    .summary-name-winner {
+    .summary-row-home-winner .summary-player-main,
+    .summary-row-home-winner .summary-player-sub,
+    .summary-row-away-winner .summary-player-main,
+    .summary-row-away-winner .summary-player-sub {
       font-weight: 700;
       color: #22c55e;
-    }
-
-    .summary-setsStr {
-      grid-column: 1 / span 2;
-      font-size: 0.78rem;
-      opacity: 0.9;
     }
   </style>
 </head>
@@ -534,7 +538,23 @@
       standingEl.classList.remove("hidden");
     }
 
-    // LUNAR slutskærm – renderer en oversigt ud fra lunarResults
+    // Pars setsStr → [{home, away}, ...]
+    function parseSetsStr(setsStr) {
+      if (!setsStr || typeof setsStr !== "string") return [];
+      return setsStr
+        .split(",")
+        .map(t => t.trim())
+        .filter(Boolean)
+        .map(t => {
+          const parts = t.split("-").map(s => s.trim());
+          if (parts.length === 2) {
+            return { home: parts[0], away: parts[1] };
+          }
+          return { home: t, away: "" };
+        });
+    }
+
+    // LUNAR slutskærm – “Lunar runde 1: ...” layout
     function renderLunarSummary(lunarResults) {
       const container = document.getElementById("lunarSummaryContent");
       if (!container) return;
@@ -572,8 +592,8 @@
 
         const h = document.createElement("h3");
         h.className = "summary-round-title";
-        if (r === 1) h.textContent = "Runde 1";
-        else if (r === 2) h.textContent = "Runde 2";
+        if (r === 1) h.textContent = "Lunar runde 1";
+        else if (r === 2) h.textContent = "Lunar runde 2";
         else h.textContent = "7. kamp – SUPER MATCH-TIE";
         section.appendChild(h);
 
@@ -586,42 +606,118 @@
           header.textContent = `Bane ${m.courtId ?? "?"}`;
           card.appendChild(header);
 
-          const setsScore = document.createElement("div");
-          setsScore.className = "summary-sets-score";
-          const hSets = Number.isFinite(Number(m.homeSets)) ? Number(m.homeSets) : 0;
-          const aSets = Number.isFinite(Number(m.awaySets)) ? Number(m.awaySets) : 0;
-          setsScore.textContent = `${hSets}–${aSets} sæt`;
-          card.appendChild(setsScore);
+          // Parse sætcifre fra setsStr
+          const setsParsed = parseSetsStr(m.setsStr || "");
+          const homeVals = ["", "", ""];
+          const awayVals = ["", "", ""];
+          for (let i = 0; i < 3; i++) {
+            if (setsParsed[i]) {
+              homeVals[i] = setsParsed[i].home ?? "";
+              awayVals[i] = setsParsed[i].away ?? "";
+            }
+          }
 
-          const names = document.createElement("div");
-          names.className = "summary-names";
+          // Split spillernavne i 2 linjer
+          const homeName = m.homeName || "Hjemme";
+          const awayName = m.awayName || "Ude";
 
-          const homeSpan = document.createElement("span");
-          homeSpan.className = "summary-home";
-          if (m.winner === 1) homeSpan.classList.add("summary-name-winner");
-          homeSpan.textContent = m.homeName || "Hjemme";
+          const homeParts = homeName.split("/").map(s => s.trim()).filter(Boolean);
+          const awayParts = awayName.split("/").map(s => s.trim()).filter(Boolean);
 
-          const vsSpan = document.createElement("span");
-          vsSpan.className = "summary-vs";
-          vsSpan.textContent = "vs";
+          const homeMain = homeParts[0] || homeName;
+          const homeSub  = homeParts[1] || "";
 
-          const awaySpan = document.createElement("span");
-          awaySpan.className = "summary-away";
-          if (m.winner === 2) awaySpan.classList.add("summary-name-winner");
-          awaySpan.textContent = m.awayName || "Ude";
+          const awayMain = awayParts[0] || awayName;
+          const awaySub  = awayParts[1] || "";
 
-          names.appendChild(homeSpan);
-          names.appendChild(vsSpan);
-          names.appendChild(awaySpan);
-          card.appendChild(names);
+          const table = document.createElement("table");
+          table.className = "summary-table";
 
-          const setsStrDiv = document.createElement("div");
-          setsStrDiv.className = "summary-setsStr";
-          setsStrDiv.textContent = (m.setsStr && m.setsStr.trim() !== "")
-            ? m.setsStr
-            : "Ingen detaljeret sætscore angivet.";
-          card.appendChild(setsStrDiv);
+          const thead = document.createElement("thead");
+          const headerRow = document.createElement("tr");
+          headerRow.className = "summary-header-row";
 
+          const thEmpty = document.createElement("th");
+          thEmpty.textContent = "";
+          headerRow.appendChild(thEmpty);
+
+          const th1 = document.createElement("th");
+          th1.textContent = "1. sæt";
+          headerRow.appendChild(th1);
+
+          const th2 = document.createElement("th");
+          th2.textContent = "2. sæt";
+          headerRow.appendChild(th2);
+
+          const th3 = document.createElement("th");
+          th3.textContent = "3. sæt";
+          headerRow.appendChild(th3);
+
+          thead.appendChild(headerRow);
+          table.appendChild(thead);
+
+          const tbody = document.createElement("tbody");
+
+          // Hjemme-række
+          const trHome = document.createElement("tr");
+          if (m.winner === 1) trHome.classList.add("summary-row-home-winner");
+
+          const tdHomeName = document.createElement("td");
+          const homeMainSpan = document.createElement("div");
+          homeMainSpan.className = "summary-player-main";
+          homeMainSpan.textContent = homeMain;
+          const homeSubSpan = document.createElement("div");
+          homeSubSpan.className = "summary-player-sub";
+          homeSubSpan.textContent = homeSub;
+          tdHomeName.appendChild(homeMainSpan);
+          if (homeSub) tdHomeName.appendChild(homeSubSpan);
+          trHome.appendChild(tdHomeName);
+
+          const tdH1 = document.createElement("td");
+          tdH1.textContent = homeVals[0] || "";
+          trHome.appendChild(tdH1);
+
+          const tdH2 = document.createElement("td");
+          tdH2.textContent = homeVals[1] || "";
+          trHome.appendChild(tdH2);
+
+          const tdH3 = document.createElement("td");
+          tdH3.textContent = homeVals[2] || "";
+          trHome.appendChild(tdH3);
+
+          tbody.appendChild(trHome);
+
+          // Ude-række
+          const trAway = document.createElement("tr");
+          if (m.winner === 2) trAway.classList.add("summary-row-away-winner");
+
+          const tdAwayName = document.createElement("td");
+          const awayMainSpan = document.createElement("div");
+          awayMainSpan.className = "summary-player-main";
+          awayMainSpan.textContent = awayMain;
+          const awaySubSpan = document.createElement("div");
+          awaySubSpan.className = "summary-player-sub";
+          awaySubSpan.textContent = awaySub;
+          tdAwayName.appendChild(awayMainSpan);
+          if (awaySub) tdAwayName.appendChild(awaySubSpan);
+          trAway.appendChild(tdAwayName);
+
+          const tdA1 = document.createElement("td");
+          tdA1.textContent = awayVals[0] || "";
+          trAway.appendChild(tdA1);
+
+          const tdA2 = document.createElement("td");
+          tdA2.textContent = awayVals[1] || "";
+          trAway.appendChild(tdA2);
+
+          const tdA3 = document.createElement("td");
+          tdA3.textContent = awayVals[2] || "";
+          trAway.appendChild(tdA3);
+
+          tbody.appendChild(trAway);
+
+          table.appendChild(tbody);
+          card.appendChild(table);
           section.appendChild(card);
         });
 
@@ -671,12 +767,13 @@
           ? adminState.lunarResults
           : [];
 
-        // Simpelt kriterie: LUNAR aktiv + mindst 6 færdigspillede kampe
+        // Kriterie: LUNAR aktiv + minst én LUNAR-bane + mindst 6 vundne kampe i alt
+        const finishedCount = homeTotal + awayTotal;
         const showSummary =
           lunarEnabled &&
           Array.isArray(lunarCourts) &&
           lunarCourts.length > 0 &&
-          lunarResults.length >= 6;
+          finishedCount >= 6;
 
         if (showSummary) {
           // Skjul banekort og info-tekst, vis slutskærm
@@ -705,12 +802,11 @@
               cardEl.style.display = "";
             }
           } else {
-            // når slutskærm vises, gemmer vi alle banekort
             cardEl.style.display = "none";
           }
         });
 
-        // Hvis vi viser slutskærm, behøver vi ikke opdatere de enkelte banekort yderligere
+        // Hvis vi viser slutskærm, behøver vi ikke opdatere banekortene
         if (showSummary) {
           return;
         }
