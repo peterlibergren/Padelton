@@ -456,6 +456,7 @@
         }
 
         // Vis/skjul baner ift. LUNAR
+        // Vis/skjul baner ift. LUNAR
         courts.forEach(court => {
           const cardEl = document.getElementById(`court-${court.id}`);
           if (!cardEl) return;
@@ -467,28 +468,21 @@
           }
         });
 
-        // Beregn stilling til SUPER MATCH-TIE (ud fra sæt, som før)
-        let homeWinsForSuper = 0;
-        let awayWinsForSuper = 0;
+        // LUNAR total-stilling (antal vundne kampe) kommer fra adminState
+        const homeTotal = Number(adminState.lunarHomeWinsTotal ?? 0);
+        const awayTotal = Number(adminState.lunarAwayWinsTotal ?? 0);
 
-        if (lunarEnabled && Array.isArray(lunarCourts) && lunarCourts.length > 0) {
-          data.forEach(c => {
-            if (!lunarCourts.includes(c.courtId)) return;
+        // Opdater visningen øverst
+        updateTeamStanding(lunarEnabled, lunarCourts, homeTotal, awayTotal);
 
-            const hs = typeof c.homeSets === "number" ? c.homeSets : 0;
-            const as = typeof c.awaySets === "number" ? c.awaySets : 0;
-
-            homeWinsForSuper += hs;
-            awayWinsForSuper += as;
-          });
-        }
-
+        // SUPER MATCH-TIE badge skal kun være synlig ved 3-3 kampe
         const superShouldBeVisible =
           lunarEnabled &&
           Array.isArray(lunarCourts) &&
           lunarCourts.length > 0 &&
-          homeWinsForSuper === 3 &&
-          awayWinsForSuper === 3;
+          homeTotal === 3 &&
+          awayTotal === 3;
+
 
         // Opdater hvert banekort
         data.forEach(c => {
@@ -688,7 +682,7 @@
         // LUNAR totalstilling (antal vundne kampe samlet)
         const homeTotal = adminState.lunarHomeWinsTotal ?? 0;
         const awayTotal = adminState.lunarAwayWinsTotal ?? 0;
-        updateTeamStanding(lunarEnabled, lunarCourts, homeTotal, awayTotal);
+        //updateTeamStanding(lunarEnabled, lunarCourts, homeTotal, awayTotal);
 
       } catch (err) {
         console.error("Fejl ved hentning af courts/adminState:", err);
