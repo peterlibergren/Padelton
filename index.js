@@ -86,7 +86,7 @@ let lunarSuperMatchPlayers = {     // spiller-indices til 7. kamp
 // Gemmer et "snapshot" for hver færdigspillet LUNAR-kamp
 // round: 1, 2 eller 7 (Super)
 // winner: 1 = hjemme, 2 = ude
-let lunarResults = [];  // [{ round, courtId, homeName, awayName, setsStr, homeSets, awaySets, winner }]
+let lunarResults = [];  // [{ round, courtId, homeName, awayName, setsStr, set1Home, ... , winner }]
 
 // Globale LUNAR-stillinger (antal vundne kampe samlet)
 let lunarHomeWinsTotal = 0;
@@ -141,7 +141,7 @@ app.post("/api/updateScore", (req, res) => {
     // valgfri samlet streng
     setsStr,
 
-    // NYT: kampstatus + 3. sæt-format
+    // kampstatus + 3. sæt-format
     matchFinished,
     winner,
     mtb3rd,
@@ -221,6 +221,18 @@ app.post("/api/updateScore", (req, res) => {
     c.mtb3rd = toBool(mtb3rd, false);
   }
 
+  // 🔹 NYT: hvis kampen er markeret som færdig, men winner = 0/mangler,
+  // så udled vinder ud fra antal vundne sæt.
+  if (c.matchFinished && (!c.winner || c.winner === 0)) {
+    const hs = Number(c.homeSets || 0);
+    const as = Number(c.awaySets || 0);
+    if (hs > as) {
+      c.winner = 1;
+    } else if (as > hs) {
+      c.winner = 2;
+    }
+  }
+
   const newFinished = !!c.matchFinished;
   const newWinner   = Number(c.winner || 0);
 
@@ -252,7 +264,6 @@ app.post("/api/updateScore", (req, res) => {
       const isSuperMatch = (lunarSuperMatchCourtId === courtId);
       if (isSuperMatch) round = 7;
 
-      // Gem resultat til slutskærm
       // Gem resultat til slutskærm (inkl. per-sæt data)
       lunarResults.push({
         round,
@@ -262,7 +273,7 @@ app.post("/api/updateScore", (req, res) => {
         homeName: c.homeName,
         awayName: c.awayName,
 
-        // Samlet set-streng (fx "1-6;7-6(3);6-4")
+        // Samlet set-streng (fx "6-4,5-7,7-6(4)")
         setsStr: c.setsStr || "",
 
         // Per-sæt score (de samme felter som scoreboardet bruger)
@@ -283,7 +294,6 @@ app.post("/api/updateScore", (req, res) => {
         // Vinder af kampen
         winner: newWinner,
       });
-
 
       console.log(
         `🔹 LUNAR kamp afsluttet på bane ${courtId} (runde ${round}) – vinder: ${newWinner}`
