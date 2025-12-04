@@ -398,39 +398,44 @@
       }
     }
 
-    function updateTeamStanding(courtsData, lunarEnabled, lunarCourts) {
-      const standingEl = document.getElementById("teamStanding");
-      const homeSpan = document.getElementById("standingHome");
-      const awaySpan = document.getElementById("standingAway");
+function updateTeamStanding(courtsData, lunarEnabled, lunarCourts) {
+  const standingEl = document.getElementById("teamStanding");
+  const homeSpan = document.getElementById("standingHome");
+  const awaySpan = document.getElementById("standingAway");
 
-      if (!standingEl || !homeSpan || !awaySpan) return;
+  if (!standingEl || !homeSpan || !awaySpan) return;
 
-      const active = !!lunarEnabled && Array.isArray(lunarCourts) && lunarCourts.length > 0;
+  const active =
+    !!lunarEnabled &&
+    Array.isArray(lunarCourts) &&
+    lunarCourts.length > 0;
 
-      if (!active) {
-        standingEl.classList.add("hidden");
-        homeSpan.textContent = "0";
-        awaySpan.textContent = "0";
-        return;
-      }
+  if (!active) {
+    standingEl.classList.add("hidden");
+    homeSpan.textContent = "0";
+    awaySpan.textContent = "0";
+    return;
+  }
 
-      let homeWins = 0;
-      let awayWins = 0;
+  let homeWins = 0;
+  let awayWins = 0;
 
-      courtsData.forEach(c => {
-        if (!lunarCourts.includes(c.courtId)) return;
+  courtsData.forEach(c => {
+    // Kun baner, der er med i LUNAR-formatet
+    if (!lunarCourts.includes(c.courtId)) return;
 
-        const hs = typeof c.homeSets === "number" ? c.homeSets : 0;
-        const as = typeof c.awaySets === "number" ? c.awaySets : 0;
+    // Kun færdigspillede kampe
+    if (!c.matchFinished) return;
 
-        homeWins += hs;
-        awayWins += as;
-      });
+    const w = Number(c.winner || 0); // 1 = hjemme, 2 = ude
+    if (w === 1) homeWins++;
+    else if (w === 2) awayWins++;
+  });
 
-      homeSpan.textContent = String(homeWins);
-      awaySpan.textContent = String(awayWins);
-      standingEl.classList.remove("hidden");
-    }
+  homeSpan.textContent = String(homeWins);
+  awaySpan.textContent = String(awayWins);
+  standingEl.classList.remove("hidden");
+}
 
     async function updateAllCourts() {
       try {
