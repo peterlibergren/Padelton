@@ -253,16 +253,37 @@ app.post("/api/updateScore", (req, res) => {
       if (isSuperMatch) round = 7;
 
       // Gem resultat til slutskærm
+      // Gem resultat til slutskærm (inkl. per-sæt data)
       lunarResults.push({
         round,
         courtId,
+
+        // Navne på det tidspunkt kampen slutter
         homeName: c.homeName,
         awayName: c.awayName,
+
+        // Samlet set-streng (fx "1-6;7-6(3);6-4")
         setsStr: c.setsStr || "",
+
+        // Per-sæt score (de samme felter som scoreboardet bruger)
+        set1Home: c.set1Home,
+        set1Away: c.set1Away,
+        set1LoserTbPoints: c.set1LoserTbPoints,
+        set1LoserIsHome: c.set1LoserIsHome,
+
+        set2Home: c.set2Home,
+        set2Away: c.set2Away,
+        set2LoserTbPoints: c.set2LoserTbPoints,
+        set2LoserIsHome: c.set2LoserIsHome,
+
+        // Totalt antal sæt vundet
         homeSets: typeof c.homeSets === "number" ? c.homeSets : Number(c.homeSets || 0),
         awaySets: typeof c.awaySets === "number" ? c.awaySets : Number(c.awaySets || 0),
+
+        // Vinder af kampen
         winner: newWinner,
       });
+
 
       console.log(
         `🔹 LUNAR kamp afsluttet på bane ${courtId} (runde ${round}) – vinder: ${newWinner}`
