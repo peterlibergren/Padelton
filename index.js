@@ -325,7 +325,7 @@ app.post("/api/updateScore", (req, res) => {
   // og banen er en LUNAR-bane, så:
   //  - tæller vi kampen med i totalstillingen
   //  - gemmer et snapshot i lunarResults til slutskærmen
-  if (!prevFinished && newFinished) {
+    if (!prevFinished && newFinished) {
     const isLunar =
       lunarEnabled &&
       Array.isArray(lunarCourts) &&
@@ -339,19 +339,50 @@ app.post("/api/updateScore", (req, res) => {
         lunarAwayWinsTotal++;
       }
 
-      // Bestem hvilken runde kampen hører til
+      // 🔹 Brug samme navne og spiller-indeks som scoreboardet
+      const names = computeEffectiveNames(c);
+
+      // Bestem grund-runden (1 eller 2) ud fra opsætningen
       let round = 1;
       const hasR2 =
         Array.isArray(lunarRound2) &&
         lunarRound2.some(e => e.courtId === courtId);
       if (hasR2) round = 2;
 
-      const isSuperMatch = (lunarSuperMatchCourtId === courtId);
-      if (isSuperMatch) round = 7;
+      // Er dette faktisk SUPER MATCH-kampen (7. kamp)?
+      let isSuperMatchRound = false;
+      if (
+        lunarSuperMatchCourtId != null &&
+        lunarSuperMatchCourtId === courtId &&
+        lunarSuperMatchPlayers
+      ) {
+        const sp = lunarSuperMatchPlayers;
+        const haveSuperIndices =
+          sp.homeIdx1 != null || sp.homeIdx2 != null ||
+          sp.awayIdx1 != null || sp.awayIdx2 != null;
 
-      // 🔹 Brug samme navne som scoreboardet
-      const names = computeEffectiveNames(c);
+        // Kun hvis der er defineret spillere til 7. kamp,
+        // og den aktuelle kamp bruger præcis de samme indices,
+        // kalder vi det runde 7.
+        if (haveSuperIndices) {
+          const sameHome =
+            names.usedHomeIdx1 === sp.homeIdx1 &&
+            names.usedHomeIdx2 === sp.homeIdx2;
+          const sameAway =
+            names.usedAwayIdx1 === sp.awayIdx1 &&
+            names.usedAwayIdx2 === sp.awayIdx2;
 
+          if (sameHome && sameAway) {
+            isSuperMatchRound = true;
+          }
+        }
+      }
+
+      if (isSuperMatchRound) {
+        round = 7;
+      }
+
+      // Gem resultat til slutskærm (inkl. per-sæt data)
       lunarResults.push({
         round,
         courtId,
@@ -386,8 +417,8 @@ app.post("/api/updateScore", (req, res) => {
         `🔹 LUNAR kamp afsluttet på bane ${courtId} (runde ${round}) – vinder: ${newWinner}`
       );
     }
-
   }
+
 
   c.lastUpdate = Date.now();
   c.online = true;
