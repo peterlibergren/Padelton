@@ -398,7 +398,7 @@
       }
     }
 
-function updateTeamStanding(courtsData, lunarEnabled, lunarCourts) {
+function updateTeamStanding(lunarEnabled, lunarCourts, lunarHomeTotal, lunarAwayTotal) {
   const standingEl = document.getElementById("teamStanding");
   const homeSpan = document.getElementById("standingHome");
   const awaySpan = document.getElementById("standingAway");
@@ -416,6 +416,14 @@ function updateTeamStanding(courtsData, lunarEnabled, lunarCourts) {
     awaySpan.textContent = "0";
     return;
   }
+
+  const h = Number.isFinite(Number(lunarHomeTotal)) ? Number(lunarHomeTotal) : 0;
+  const a = Number.isFinite(Number(lunarAwayTotal)) ? Number(lunarAwayTotal) : 0;
+
+  homeSpan.textContent = String(h);
+  awaySpan.textContent = String(a);
+  standingEl.classList.remove("hidden");
+}
 
   let homeWins = 0;
   let awayWins = 0;
@@ -693,7 +701,10 @@ function updateTeamStanding(courtsData, lunarEnabled, lunarCourts) {
           }
         });
 
-        updateTeamStanding(data, lunarEnabled, lunarCourts);
+const homeTotal = adminState.lunarHomeWinsTotal ?? 0;
+const awayTotal = adminState.lunarAwayWinsTotal ?? 0;
+updateTeamStanding(lunarEnabled, lunarCourts, homeTotal, awayTotal);
+
       } catch (err) {
         console.error("Fejl ved hentning af courts/adminState:", err);
 
