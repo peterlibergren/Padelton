@@ -82,7 +82,13 @@ let lunarSuperMatchPlayers = {     // spiller-indices til 7. kamp
   awayIdx2: null,
 };
 
-// NYT: globale LUNAR-stillinger (antal vundne kampe samlet)
+// ==== LUNAR RESULTATER ====
+// Gemmer et "snapshot" for hver færdigspillet LUNAR-kamp
+// round: 1, 2 eller 7 (Super)
+// winner: 1 = hjemme, 2 = ude
+let lunarResults = [];  // [{ round, courtId, homeName, awayName, setsStr, homeSets, awaySets, winner }]
+
+// Globale LUNAR-stillinger (antal vundne kampe samlet)
 let lunarHomeWinsTotal = 0;
 let lunarAwayWinsTotal = 0;
 
@@ -147,23 +153,9 @@ app.post("/api/updateScore", (req, res) => {
 
   const c = courts[courtId];
 
-  // Gem tidligere kampstatus for LUNAR-tælling
+  // Gem tidligere kampstatus for LUNAR-tælling og logging
   const prevFinished = !!c.matchFinished;
-  const prevWinner = Number(c.winner || 0); // 0,1,2
-
-  // Basisnavne (admin/spillerliste kan overskrive senere)
-  if (homeName !== undefined) c.homeName = homeName;
-  if (awayName !== undefined) c.awayName = awayName;
-
-  if (homePoints !== undefined) c.homePoints = homePoints;
-  if (awayPoints !== undefined) c.awayPoints = awayPoints;
-  if (homePointsStr !== undefined) c.homePointsStr = homePointsStr;
-  if (awayPointsStr !== undefined) c.awayPointsStr = awayPointsStr;
-
-  if (homeGames !== undefined) c.homeGames = homeGames;
-  if (awayGames !== undefined) c.awayGames = awayGames;
-  if (homeSets !== undefined) c.homeSets = homeSets;
-  if (awaySets !== undefined) c.awaySets = awaySets;
+  const prevWinner   = Number(c.winner || 0); // 0,1,2
 
   // Hjælpere til parse ints/bools
   function toIntOrDefault(v, def) {
@@ -183,6 +175,20 @@ app.post("/api/updateScore", (req, res) => {
     }
     return def;
   }
+
+  // Basisnavne (admin/spillerliste kan overskrive senere i /api/courts)
+  if (homeName !== undefined) c.homeName = homeName;
+  if (awayName !== undefined) c.awayName = awayName;
+
+  if (homePoints !== undefined) c.homePoints = homePoints;
+  if (awayPoints !== undefined) c.awayPoints = awayPoints;
+  if (homePointsStr !== undefined) c.homePointsStr = homePointsStr;
+  if (awayPointsStr !== undefined) c.awayPointsStr = awayPointsStr;
+
+  if (homeGames !== undefined) c.homeGames = homeGames;
+  if (awayGames !== undefined) c.awayGames = awayGames;
+  if (homeSets !== undefined) c.homeSets = homeSets;
+  if (awaySets !== undefined) c.awaySets = awaySets;
 
   // set-historik
   if (set1Home !== undefined) c.set1Home = toIntOrDefault(set1Home, -1);
@@ -204,7 +210,7 @@ app.post("/api/updateScore", (req, res) => {
       typeof setsStr === "string" ? setsStr : setsStr != null ? String(setsStr) : "";
   }
 
-  // NYT: kampstatus + vinder + 3. sæt-format
+  // Kampstatus + vinder + 3. sæt-format
   if (matchFinished !== undefined) {
     c.matchFinished = toBool(matchFinished, false);
   }
@@ -215,19 +221,52 @@ app.post("/api/updateScore", (req, res) => {
     c.mtb3rd = toBool(mtb3rd, false);
   }
 
-  // LUNAR – hvis kampen lige er blevet færdig (transition false -> true),
-  // og banen er en LUNAR-bane, så tæller vi kampen med i totalstillingen.
   const newFinished = !!c.matchFinished;
-  const newWinner = Number(c.winner || 0);
+  const newWinner   = Number(c.winner || 0);
 
+  // LUNAR – hvis kampen lige er blevet færdig (transition false -> true),
+  // og banen er en LUNAR-bane, så:
+  //  - tæller vi kampen med i totalstillingen
+  //  - gemmer et snapshot i lunarResults til slutskærmen
   if (!prevFinished && newFinished) {
-    // Kun hvis LUNAR er aktiv og banen er med i LUNAR
-    if (lunarEnabled && Array.isArray(lunarCourts) && lunarCourts.includes(courtId)) {
+    const isLunar =
+      lunarEnabled &&
+      Array.isArray(lunarCourts) &&
+      lunarCourts.includes(courtId);
+
+    if (isLunar) {
+      // Opdater global stilling (antal vundne kampe)
       if (newWinner === 1) {
         lunarHomeWinsTotal++;
       } else if (newWinner === 2) {
         lunarAwayWinsTotal++;
       }
+
+      // Bestem hvilken runde kampen hører til
+      let round = 1;
+      const hasR2 =
+        Array.isArray(lunarRound2) &&
+        lunarRound2.some(e => e.courtId === courtId);
+      if (hasR2) round = 2;
+
+      const isSuperMatch = (lunarSuperMatchCourtId === courtId);
+      if (isSuperMatch) round = 7;
+
+      // Gem resultat til slutskærm
+      lunarResults.push({
+        round,
+        courtId,
+        homeName: c.homeName,
+        awayName: c.awayName,
+        setsStr: c.setsStr || "",
+        homeSets: typeof c.homeSets === "number" ? c.homeSets : Number(c.homeSets || 0),
+        awaySets: typeof c.awaySets === "number" ? c.awaySets : Number(c.awaySets || 0),
+        winner: newWinner,
+      });
+
+      console.log(
+        `🔹 LUNAR kamp afsluttet på bane ${courtId} (runde ${round}) – vinder: ${newWinner}`
+      );
     }
   }
 
@@ -353,7 +392,7 @@ app.post("/api/setLunarConfig", (req, res) => {
   // On/off
   lunarEnabled = !!enabledFromClient;
 
-  // Hvis LUNAR slås FRA → ryd alt LUNAR-state + stillinger
+  // Hvis LUNAR slås FRA → ryd alt LUNAR-state + stillinger + resultater
   if (!lunarEnabled) {
     lunarCourts = [];
     lunarRound1 = [];
@@ -368,16 +407,20 @@ app.post("/api/setLunarConfig", (req, res) => {
 
     lunarHomeWinsTotal = 0;
     lunarAwayWinsTotal = 0;
+    lunarResults = [];
 
-    console.log("[LUNAR CONFIG] disabled + nulstil stilling");
+    console.log("[LUNAR CONFIG] disabled + nulstil stilling + resultater");
     return res.json({
       status: "ok",
       lunarEnabled,
       lunarCourts,
+      lunarRound1,
+      lunarRound2,
       lunarSuperMatchCourtId,
       lunarSuperMatchPlayers,
       lunarHomeWinsTotal,
       lunarAwayWinsTotal,
+      lunarResults,
     });
   }
 
@@ -414,10 +457,13 @@ app.post("/api/setLunarConfig", (req, res) => {
     status: "ok",
     lunarEnabled,
     lunarCourts,
+    lunarRound1,
+    lunarRound2,
     lunarSuperMatchCourtId,
     lunarSuperMatchPlayers,
     lunarHomeWinsTotal,
     lunarAwayWinsTotal,
+    lunarResults,
   });
 });
 
@@ -529,6 +575,7 @@ app.get("/api/adminState", (req, res) => {
     lunarRound2,
     lunarSuperMatchCourtId,
     lunarSuperMatchPlayers,
+    lunarResults,
     lunarHomeWinsTotal,
     lunarAwayWinsTotal,
   });
