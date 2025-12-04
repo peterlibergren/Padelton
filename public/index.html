@@ -282,7 +282,8 @@
     /* --- LUNAR SLUTSKÆRM --- */
 
     .lunar-summary {
-      max-width: 900px;
+      max-width: 1400px;              /* bredere container */
+      width: 95vw;
       margin: 16px auto 24px;
       padding: 16px 14px 18px;
       border-radius: 18px;
@@ -293,7 +294,7 @@
 
     .lunar-summary-title {
       margin: 0 0 10px;
-      font-size: clamp(1.3rem, 2.8vw, 1.6rem);
+      font-size: clamp(1.6rem, 3vw, 2rem);
       text-transform: uppercase;
       letter-spacing: 0.12em;
       text-align: center;
@@ -301,74 +302,81 @@
 
     .lunar-summary-subtitle {
       margin: 0 0 14px;
-      font-size: 0.8rem;
+      font-size: 0.9rem;
       text-align: center;
       color: #9ca3af;
       opacity: 0.9;
     }
 
-.summary-section {
-  margin: 20px auto;
-  max-width: 1400px;
-  width: 95%;
-}
+    .summary-section {
+      margin: 20px auto 8px;
+      width: 100%;
+    }
 
-.summary-round-title {
-  font-size: 1.8rem;
-  font-weight: bold;
-  margin-bottom: 12px;
-  text-align: left;
-}
+    .summary-round-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      text-align: left;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
 
-.summary-table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed; /* Sørger for pæne kolonnebreder */
-}
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: auto; /* lad browseren fordele bredden pænt */
+    }
 
-.summary-header-row th {
-  padding: 10px 8px;
-  background: #222;
-  color: #fff;
-  font-size: 1.1rem;
-  text-align: center;
-  white-space: nowrap;
-  border-bottom: 3px solid #444;
-}
-
-.summary-table td {
-  font-size: 1.2rem;
-  padding: 10px 6px;
-  border-bottom: 1px solid #555;
-  vertical-align: middle;
-}
-
-/* Banenummer og navne venstrejusteres */
-.summary-table td:nth-child(1),
-.summary-table td:nth-child(2),
-.summary-table td:nth-child(3) {
-  text-align: left;
-}
-
-/* Sætscore og vinder centreret */
-.summary-table td:nth-child(4),
-.summary-table td:nth-child(5),
-.summary-table td:nth-child(6),
-.summary-table td:nth-child(7) {
-  text-align: center;
-}
-
-/* Gør navne-kolonnerne større */
-.summary-table td:nth-child(2),
-.summary-table td:nth-child(3) {
-  width: 25%; /* Hver af dem får mere plads */
-}
-
+    .summary-table th,
+    .summary-table td {
+      padding: 8px 6px;
+      border-bottom: 1px solid #4b5563;
+      font-size: 0.95rem;
+    }
 
     .summary-header-row th {
+      background: #111827;
+      border-bottom: 2px solid #6b7280;
       font-weight: 600;
-      opacity: 0.9;
-      font-size: 0.76rem;
+      opacity: 0.95;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    /* kolonnejusteringer */
+    .summary-table th:nth-child(1),
+    .summary-table td:nth-child(1) {
+      text-align: left;
+      width: 10%;    /* Bane/Kamp */
+    }
+
+    .summary-table th:nth-child(2),
+    .summary-table td:nth-child(2),
+    .summary-table th:nth-child(3),
+    .summary-table td:nth-child(3) {
+      text-align: left;
+      width: 25%;    /* Hjemme / Ude */
+    }
+
+    .summary-table th:nth-child(4),
+    .summary-table td:nth-child(4),
+    .summary-table th:nth-child(5),
+    .summary-table td:nth-child(5),
+    .summary-table th:nth-child(6),
+    .summary-table td:nth-child(6),
+    .summary-table th:nth-child(7),
+    .summary-table td:nth-child(7) {
+      text-align: center;
+      width: 10%;    /* Sæt og vinder */
+    }
+
+    .summary-table tbody tr:nth-child(odd) {
+      background: rgba(15, 23, 42, 0.9);
+    }
+
+    .summary-table tbody tr:nth-child(even) {
+      background: rgba(15, 23, 42, 0.7);
     }
 
     .summary-player-main {
@@ -378,12 +386,13 @@
     }
 
     .summary-player-sub {
-      font-size: 0.74rem;
+      font-size: 0.8rem;
       opacity: 0.85;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
+
   </style>
 </head>
 <body>
