@@ -307,52 +307,63 @@
       opacity: 0.9;
     }
 
-    .summary-section {
-      margin-top: 12px;
-    }
+.summary-section {
+  margin: 20px auto;
+  max-width: 1400px;
+  width: 95%;
+}
 
-    .summary-round-title {
-      margin: 0 0 6px;
-      font-size: 0.9rem;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: #e5e7eb;
-      opacity: 0.9;
-    }
+.summary-round-title {
+  font-size: 1.8rem;
+  font-weight: bold;
+  margin-bottom: 12px;
+  text-align: left;
+}
 
-    .summary-match {
-      margin-top: 6px;
-      padding: 6px 8px;
-      border-radius: 10px;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(75, 85, 99, 0.9);
-    }
+.summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed; /* Sørger for pæne kolonnebreder */
+}
 
-    .summary-match-header {
-      font-size: 0.8rem;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      opacity: 0.9;
-      margin-bottom: 4px;
-    }
+.summary-header-row th {
+  padding: 10px 8px;
+  background: #222;
+  color: #fff;
+  font-size: 1.1rem;
+  text-align: center;
+  white-space: nowrap;
+  border-bottom: 3px solid #444;
+}
 
-    .summary-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.82rem;
-    }
+.summary-table td {
+  font-size: 1.2rem;
+  padding: 10px 6px;
+  border-bottom: 1px solid #555;
+  vertical-align: middle;
+}
 
-    .summary-table th,
-    .summary-table td {
-      padding: 3px 4px;
-      text-align: center;
-    }
+/* Banenummer og navne venstrejusteres */
+.summary-table td:nth-child(1),
+.summary-table td:nth-child(2),
+.summary-table td:nth-child(3) {
+  text-align: left;
+}
 
-    .summary-table th:first-child,
-    .summary-table td:first-child {
-      text-align: left;
-      width: 55%;
-    }
+/* Sætscore og vinder centreret */
+.summary-table td:nth-child(4),
+.summary-table td:nth-child(5),
+.summary-table td:nth-child(6),
+.summary-table td:nth-child(7) {
+  text-align: center;
+}
+
+/* Gør navne-kolonnerne større */
+.summary-table td:nth-child(2),
+.summary-table td:nth-child(3) {
+  width: 25%; /* Hver af dem får mere plads */
+}
+
 
     .summary-header-row th {
       font-weight: 600;
