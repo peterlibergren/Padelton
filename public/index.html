@@ -779,6 +779,7 @@ function renderLunarSummary(lunarResults) {
         const summaryEl = document.getElementById("lunarSummary");
 
         // Global LUNAR-stilling (antal vundne kampe)
+        // Global LUNAR-stilling (antal vundne kampe)
         const homeTotal = Number(adminState.lunarHomeWinsTotal ?? 0);
         const awayTotal = Number(adminState.lunarAwayWinsTotal ?? 0);
         updateTeamStanding(lunarEnabled, lunarCourts, homeTotal, awayTotal);
@@ -787,19 +788,46 @@ function renderLunarSummary(lunarResults) {
           ? adminState.lunarResults
           : [];
 
-        // Brug antal registrerede LUNAR-kampe i stedet for kun total-wins
-        const resultsCount = lunarResults.length;
+        // Hvor mange baner er med i LUNAR → hvor mange kampe i runde 1+2?
+        const baseMatches = lunarCourts.length * 2; // fx 3 baner → 6 kampe
 
-        // Slutskærm når:
-        //  - LUNAR er aktiv
-        //  - der er valgt mindst én bane
-        //  - der er registreret mindst 2 runder á antal LUNAR-baner
-        //    (typisk 3 baner → 6 kampe)
-        const showSummary =
+        // Tæl hvor mange resultater vi har for runde 1+2 og for runde 7
+        let r1r2Count = 0;
+        let superCount = 0;
+
+        lunarResults.forEach(m => {
+          if (!m) return;
+          const r = Number(m.round ?? 0);
+          if (r === 1 || r === 2) {
+            r1r2Count++;
+          } else if (r === 7) {
+            superCount++;
+          }
+        });
+
+        // Slutskærm vises KUN når:
+        //  - LUNAR er aktiv + der er baner
+        //  - alle kampe i runde 1+2 ER spillet (r1r2Count >= baseMatches)
+        //  OG:
+        //    - enten er stillingen IKKE lige (fx 4–2, 5–1, 6–0) → afgøres på 6 kampe
+        //    - eller også ER stillingen lige (fx 3–3), men der ER spillet mindst én 7. kamp (superCount >= 1)
+        let showSummary = false;
+
+        if (
           lunarEnabled &&
           Array.isArray(lunarCourts) &&
           lunarCourts.length > 0 &&
-          resultsCount >= lunarCourts.length * 2;
+          r1r2Count >= baseMatches
+        ) {
+          if (homeTotal !== awayTotal) {
+            // Afgjort på runde 1+2 (fx 4–2)
+            showSummary = true;
+          } else if (homeTotal === awayTotal && superCount >= 1) {
+            // Står lige efter runde 1+2 (fx 3–3), men SUPER MATCH-TIE er spillet
+            showSummary = true;
+          }
+        }
+
 
 
         if (showSummary) {
