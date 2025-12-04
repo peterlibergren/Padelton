@@ -506,33 +506,6 @@
         return { home: String(h), away: `${a}(${tb})` };
       }
     }
-// NY: samme logik, men til objekterne i lunarResults (slutskærm)
-function buildSetStringsFromResult(m, setIndex) {
-  const homeKey = setIndex === 1 ? "set1Home" : "set2Home";
-  const awayKey = setIndex === 1 ? "set1Away" : "set2Away";
-  const tbKey   = setIndex === 1 ? "set1LoserTbPoints" : "set2LoserTbPoints";
-  const lhKey   = setIndex === 1 ? "set1LoserIsHome"   : "set2LoserIsHome";
-
-  const h = m[homeKey];
-  const a = m[awayKey];
-
-  if (h == null || a == null || h < 0 || a < 0) {
-    return { home: "", away: "" };
-  }
-
-  const tb = m[tbKey];
-  const lIsHome = !!m[lhKey];
-
-  if (tb == null || tb < 0) {
-    return { home: String(h), away: String(a) };
-  }
-
-  if (lIsHome) {
-    return { home: `${h}(${tb})`, away: String(a) };
-  } else {
-    return { home: String(h), away: `${a}(${tb})` };
-  }
-}
 
     // LUNAR-stilling øverst – bruger globale totals fra adminState
     function updateTeamStanding(lunarEnabled, lunarCourts, lunarHomeTotal, lunarAwayTotal) {
@@ -562,10 +535,6 @@ function buildSetStringsFromResult(m, setIndex) {
       standingEl.classList.remove("hidden");
     }
 
-    // Pars setsStr → [{home, away}, ...]
-  // Parser en samlet set-streng, fx "6-4,5-7,7-6(4)"
-// og returnerer et array med op til 3 objekter:
-// [{ home: "6", away: "4" }, { home: "5", away: "7" }, { home: "7", away: "6(4)" }]
 function parseSetsStr(setsStr) {
   if (!setsStr || typeof setsStr !== "string") return [];
 
@@ -583,6 +552,48 @@ function parseSetsStr(setsStr) {
     .slice(0, 3); // max 3 sæt
 }
 
+// Hjælper: byg sætscore ud fra resultatobjektet (kombinerer felter + setsStr)
+function getSetDisplayFromResult(m, setIndex) {
+  // Først forsøg: brug de per-sæt-felter, hvis de giver mening
+  const homeKey = setIndex === 1 ? "set1Home" : setIndex === 2 ? "set2Home" : null;
+  const awayKey = setIndex === 1 ? "set1Away" : setIndex === 2 ? "set2Away" : null;
+  const tbKey   = setIndex === 1 ? "set1LoserTbPoints" : setIndex === 2 ? "set2LoserTbPoints" : null;
+  const lhKey   = setIndex === 1 ? "set1LoserIsHome"   : setIndex === 2 ? "set2LoserIsHome"   : null;
+
+  if (homeKey && awayKey) {
+    const h = m[homeKey];
+    const a = m[awayKey];
+
+    if (typeof h === "number" && typeof a === "number" && h >= 0 && a >= 0) {
+      const tb = tbKey ? m[tbKey] : null;
+      const lIsHome = lhKey ? !!m[lhKey] : false;
+
+      if (tb == null || tb < 0) {
+        return { home: String(h), away: String(a) };
+      }
+
+      if (lIsHome) {
+        return { home: `${h}(${tb})`, away: String(a) };
+      } else {
+        return { home: String(h), away: `${a}(${tb})` };
+      }
+    }
+  }
+
+  // Fallback: parse setsStr (fx "6-4,5-7,7-6(4)")
+  const parsed = parseSetsStr(m.setsStr || "");
+  const idx = setIndex - 1;
+  if (parsed[idx]) {
+    return {
+      home: parsed[idx].home || "",
+      away: parsed[idx].away || "",
+    };
+  }
+
+  return { home: "", away: "" };
+}
+
+// Slutskærm – oversigt over alle LUNAR-kampe
 function renderLunarSummary(lunarResults) {
   const container = document.getElementById("lunarSummaryContent");
   if (!container) return;
@@ -627,158 +638,93 @@ function renderLunarSummary(lunarResults) {
     else h.textContent = "7. kamp – SUPER MATCH-TIE";
     section.appendChild(h);
 
-    list.forEach(m => {
-      const card = document.createElement("div");
-      card.className = "summary-match";
+    // Tabel med én række pr. kamp
+    const table = document.createElement("table");
+    table.className = "summary-table";
 
-      // Header: Bane X
-      const header = document.createElement("div");
-      header.className = "summary-match-header";
-      header.textContent = `Bane ${m.courtId ?? "?"}`;
-      card.appendChild(header);
+    const thead = document.createElement("thead");
+    const headerRow = document.createElement("tr");
+    headerRow.className = "summary-header-row";
 
-      // Parse sætcifre fra setsStr (fx "6-4,5-7,7-6(4)")
-      const setsParsed = parseSetsStr(m.setsStr || "");
-      const homeVals = ["", "", ""];
-      const awayVals = ["", "", ""];
+    const thKamp = document.createElement("th");
+    thKamp.textContent = "Kamp";
+    headerRow.appendChild(thKamp);
 
-      for (let i = 0; i < 3; i++) {
-        if (setsParsed[i]) {
-          homeVals[i] = setsParsed[i].home ?? "";
-          awayVals[i] = setsParsed[i].away ?? "";
-        }
-      }
+    const thHome = document.createElement("th");
+    thHome.textContent = "Hjemme";
+    headerRow.appendChild(thHome);
 
-      // Split spillernavne i to linjer pr. hold (x / y)
-      const homeName = m.homeName || "Hjemme";
-      const awayName = m.awayName || "Ude";
+    const thAway = document.createElement("th");
+    thAway.textContent = "Ude";
+    headerRow.appendChild(thAway);
 
-      const homeParts = homeName.split("/").map(s => s.trim()).filter(Boolean);
-      const awayParts = awayName.split("/").map(s => s.trim()).filter(Boolean);
+    const thS1 = document.createElement("th");
+    thS1.textContent = "1. sæt";
+    headerRow.appendChild(thS1);
 
-      const homeMain = homeParts[0] || homeName;
-      const homeSub  = homeParts[1] || "";
-      const awayMain = awayParts[0] || awayName;
-      const awaySub  = awayParts[1] || "";
+    const thS2 = document.createElement("th");
+    thS2.textContent = "2. sæt";
+    headerRow.appendChild(thS2);
 
-      // Byg tabel: tom | 1. sæt | 2. sæt | 3. sæt
-      const table = document.createElement("table");
-      table.className = "summary-table";
+    const thS3 = document.createElement("th");
+    thS3.textContent = "3. sæt";
+    headerRow.appendChild(thS3);
 
-      const thead = document.createElement("thead");
-      const headerRow = document.createElement("tr");
-      headerRow.className = "summary-header-row";
+    const thWinner = document.createElement("th");
+    thWinner.textContent = "Vinder";
+    headerRow.appendChild(thWinner);
 
-      const thEmpty = document.createElement("th");
-      thEmpty.textContent = "";
-      headerRow.appendChild(thEmpty);
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
 
-      const th1 = document.createElement("th");
-      th1.textContent = "1. sæt";
-      headerRow.appendChild(th1);
+    const tbody = document.createElement("tbody");
 
-      const th2 = document.createElement("th");
-      th2.textContent = "2. sæt";
-      headerRow.appendChild(th2);
+    list.forEach((m, idx) => {
+      const tr = document.createElement("tr");
 
-      const th3 = document.createElement("th");
-      th3.textContent = "3. sæt";
-      headerRow.appendChild(th3);
+      const tdKamp = document.createElement("td");
+      tdKamp.textContent = `Bane ${m.courtId ?? "?"}`;
+      tr.appendChild(tdKamp);
 
-      thead.appendChild(headerRow);
-      table.appendChild(thead);
+      const tdHome = document.createElement("td");
+      tdHome.textContent = m.homeName || "Hjemme";
+      tr.appendChild(tdHome);
 
-      const tbody = document.createElement("tbody");
+      const tdAway = document.createElement("td");
+      tdAway.textContent = m.awayName || "Ude";
+      tr.appendChild(tdAway);
 
-      // Hjemme spiller x – med scores
-      const trHome1 = document.createElement("tr");
-      const tdHomeMain = document.createElement("td");
-      const homeMainSpan = document.createElement("div");
-      homeMainSpan.className = "summary-player-main";
-      homeMainSpan.textContent = homeMain;
-      tdHomeMain.appendChild(homeMainSpan);
-      trHome1.appendChild(tdHomeMain);
+      const s1 = getSetDisplayFromResult(m, 1);
+      const s2 = getSetDisplayFromResult(m, 2);
+      const s3 = getSetDisplayFromResult(m, 3);
 
-      const tdH1 = document.createElement("td");
-      tdH1.textContent = homeVals[0] || "";
-      trHome1.appendChild(tdH1);
+      const tdS1 = document.createElement("td");
+      tdS1.textContent = s1.home && s1.away ? `${s1.home}-${s1.away}` : "";
+      tr.appendChild(tdS1);
 
-      const tdH2 = document.createElement("td");
-      tdH2.textContent = homeVals[1] || "";
-      trHome1.appendChild(tdH2);
+      const tdS2 = document.createElement("td");
+      tdS2.textContent = s2.home && s2.away ? `${s2.home}-${s2.away}` : "";
+      tr.appendChild(tdS2);
 
-      const tdH3 = document.createElement("td");
-      tdH3.textContent = homeVals[2] || "";
-      trHome1.appendChild(tdH3);
+      const tdS3 = document.createElement("td");
+      tdS3.textContent = s3.home && s3.away ? `${s3.home}-${s3.away}` : "";
+      tr.appendChild(tdS3);
 
-      tbody.appendChild(trHome1);
+      const tdWinner = document.createElement("td");
+      const w = Number(m.winner || 0);
+      if (w === 1) tdWinner.textContent = "Hjemme";
+      else if (w === 2) tdWinner.textContent = "Ude";
+      else tdWinner.textContent = "";
+      tr.appendChild(tdWinner);
 
-      // Hjemme spiller y – kun navn
-      if (homeSub) {
-        const trHome2 = document.createElement("tr");
-        const tdHomeSub = document.createElement("td");
-        const homeSubSpan = document.createElement("div");
-        homeSubSpan.className = "summary-player-sub";
-        homeSubSpan.textContent = homeSub;
-        tdHomeSub.appendChild(homeSubSpan);
-        trHome2.appendChild(tdHomeSub);
-
-        trHome2.appendChild(document.createElement("td"));
-        trHome2.appendChild(document.createElement("td"));
-        trHome2.appendChild(document.createElement("td"));
-
-        tbody.appendChild(trHome2);
-      }
-
-      // Ude spiller x – med scores
-      const trAway1 = document.createElement("tr");
-      const tdAwayMain = document.createElement("td");
-      const awayMainSpan = document.createElement("div");
-      awayMainSpan.className = "summary-player-main";
-      awayMainSpan.textContent = awayMain;
-      tdAwayMain.appendChild(awayMainSpan);
-      trAway1.appendChild(tdAwayMain);
-
-      const tdA1 = document.createElement("td");
-      tdA1.textContent = awayVals[0] || "";
-      trAway1.appendChild(tdA1);
-
-      const tdA2 = document.createElement("td");
-      tdA2.textContent = awayVals[1] || "";
-      trAway1.appendChild(tdA2);
-
-      const tdA3 = document.createElement("td");
-      tdA3.textContent = awayVals[2] || "";
-      trAway1.appendChild(tdA3);
-
-      tbody.appendChild(trAway1);
-
-      // Ude spiller y – kun navn
-      if (awaySub) {
-        const trAway2 = document.createElement("tr");
-        const tdAwaySub = document.createElement("td");
-        const awaySubSpan = document.createElement("div");
-        awaySubSpan.className = "summary-player-sub";
-        awaySubSpan.textContent = awaySub;
-        tdAwaySub.appendChild(awaySubSpan);
-        trAway2.appendChild(tdAwaySub);
-
-        trAway2.appendChild(document.createElement("td"));
-        trAway2.appendChild(document.createElement("td"));
-        trAway2.appendChild(document.createElement("td"));
-
-        tbody.appendChild(trAway2);
-      }
-
-      table.appendChild(tbody);
-      card.appendChild(table);
-      section.appendChild(card);
+      tbody.appendChild(tr);
     });
 
+    table.appendChild(tbody);
+    section.appendChild(table);
     container.appendChild(section);
   });
 }
-
 
     // Hent adminState + ALLE baner og opdater UI
     async function updateAllCourts() {
