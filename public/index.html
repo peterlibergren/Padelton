@@ -949,22 +949,24 @@ function renderLunarSummary(lunarResults) {
             (!prev || !prev.matchFinished);
 
           // Kun lås score i gul/blå, hvis kampen sluttede i 3. sæt
-          if (justFinished) {
-            if (endedInThreePlus) {
-              const src = prev && !prev.matchFinished ? prev : c;
-              lockedScore[id] = {
-                homePoints: src.homePoints,
-                awayPoints: src.awayPoints,
-                homePointsStr: src.homePointsStr,
-                awayPointsStr: src.awayPointsStr,
-                homeGames: src.homeGames,
-                awayGames: src.awayGames,
-              };
-            } else {
-              // Slut i 2 sæt → ingen låst score
-              lockedScore[id] = null;
-            }
-          }
+if (justFinished) {
+  if (endedInThreePlus) {
+    // Brug altid den AKTUELLE state (c), som indeholder 7–5 osv.
+    const src = c;
+    lockedScore[id] = {
+      homePoints: src.homePoints,
+      awayPoints: src.awayPoints,
+      homePointsStr: src.homePointsStr,
+      awayPointsStr: src.awayPointsStr,
+      homeGames: src.homeGames,
+      awayGames: src.awayGames,
+    };
+  } else {
+    // Slut i 2 sæt → ingen låst score
+    lockedScore[id] = null;
+  }
+}
+
 
           // Hvis kampen ikke længere er slut (teoretisk) → ryd lås
           if (!matchFinished) {
