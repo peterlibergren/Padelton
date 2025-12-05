@@ -648,7 +648,7 @@ function formatSetCell(setObj) {
 function renderLunarSummary(lunarResults) {
   const container = document.getElementById("lunarSummaryContent");
   if (!container) return;
-
+  console.log("🔍 lunarResults til slutsiden:", lunarResults);
   container.innerHTML = "";
 
   if (!Array.isArray(lunarResults) || lunarResults.length === 0) {
