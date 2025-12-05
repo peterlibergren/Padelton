@@ -567,11 +567,22 @@ function parseSetsStr(setsStr) {
   if (!setsStr || typeof setsStr !== "string") return [];
 
   return setsStr
-    .split(",")
+    // tillad både komma og semikolon som separatorer
+    .split(/[;,]/)
     .map(s => s.trim())
     .filter(Boolean)
     .map(part => {
+      // prøv at splitte på "-" mellem hjemme og ude
       const [homeRaw, awayRaw] = part.split("-").map(x => (x || "").trim());
+
+      // hvis vi ikke kan splitte ordentligt, brug hele strengen som "home"
+      if (!awayRaw) {
+        return {
+          home: part,
+          away: "",
+        };
+      }
+
       return {
         home: homeRaw || "",
         away: awayRaw || "",
@@ -579,6 +590,7 @@ function parseSetsStr(setsStr) {
     })
     .slice(0, 3); // max 3 sæt
 }
+
 
 // Hjælper: byg sætscore ud fra resultatobjektet (kombinerer felter + setsStr)
 function getSetDisplayFromResult(m, setIndex) {
@@ -621,6 +633,17 @@ function getSetDisplayFromResult(m, setIndex) {
   return { home: "", away: "" };
 }
 
+function formatSetCell(setObj) {
+  if (!setObj) return "";
+  const h = (setObj.home || "").trim();
+  const a = (setObj.away || "").trim();
+
+  if (h && a) return `${h}-${a}`;
+  if (h) return h;
+  if (a) return a;
+  return "";
+}
+    
 // Slutskærm – oversigt over alle LUNAR-kampe
 function renderLunarSummary(lunarResults) {
   const container = document.getElementById("lunarSummaryContent");
@@ -727,16 +750,16 @@ function renderLunarSummary(lunarResults) {
       const s3 = getSetDisplayFromResult(m, 3);
 
       const tdS1 = document.createElement("td");
-      tdS1.textContent = s1.home && s1.away ? `${s1.home}-${s1.away}` : "";
-      tr.appendChild(tdS1);
+tdS1.textContent = formatSetCell(s1);
+tr.appendChild(tdS1);
 
-      const tdS2 = document.createElement("td");
-      tdS2.textContent = s2.home && s2.away ? `${s2.home}-${s2.away}` : "";
-      tr.appendChild(tdS2);
+const tdS2 = document.createElement("td");
+tdS2.textContent = formatSetCell(s2);
+tr.appendChild(tdS2);
 
-      const tdS3 = document.createElement("td");
-      tdS3.textContent = s3.home && s3.away ? `${s3.home}-${s3.away}` : "";
-      tr.appendChild(tdS3);
+const tdS3 = document.createElement("td");
+tdS3.textContent = formatSetCell(s3);
+tr.appendChild(tdS3);
 
       const tdWinner = document.createElement("td");
       const w = Number(m.winner || 0);
