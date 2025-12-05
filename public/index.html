@@ -426,6 +426,10 @@
   <script>
     const BASE_URL = "";
 
+    // Tjek om vi skal tvinge slutskærm via URL: ?summary=1
+const urlParams = new URLSearchParams(window.location.search);
+const forceSummary = urlParams.get("summary") === "1";
+
     const courts = [
       { id: 1, sponsor: "Bane 1 – BetaPack" },
       { id: 2, sponsor: "Bane 2 – Brdr. Thybo" },
@@ -815,22 +819,28 @@ function renderLunarSummary(lunarResults) {
         //  OG:
         //    - enten er stillingen IKKE lige (fx 4–2, 5–1, 6–0) → afgøres på 6 kampe
         //    - eller også ER stillingen lige (fx 3–3), men der ER spillet mindst én 7. kamp (superCount >= 1)
-        let showSummary = false;
+let showSummary = false;
 
-        if (
-          lunarEnabled &&
-          Array.isArray(lunarCourts) &&
-          lunarCourts.length > 0 &&
-          r1r2Count >= baseMatches
-        ) {
-          if (homeTotal !== awayTotal) {
-            // Afgjort på runde 1+2 (fx 4–2)
-            showSummary = true;
-          } else if (homeTotal === awayTotal && superCount >= 1) {
-            // Står lige efter runde 1+2 (fx 3–3), men SUPER MATCH-TIE er spillet
-            showSummary = true;
-          }
-        }
+// Tving slutskærm via URL ?summary=1 (kræver mindst én kamp registreret)
+if (forceSummary && lunarEnabled && r1r2Count + superCount > 0) {
+  showSummary = true;
+}
+// Ellers normal logik
+else if (
+  lunarEnabled &&
+  Array.isArray(lunarCourts) &&
+  lunarCourts.length > 0 &&
+  r1r2Count >= baseMatches
+) {
+  if (homeTotal !== awayTotal) {
+    // Afgjort på runde 1+2 (fx 4–2)
+    showSummary = true;
+  } else if (homeTotal === awayTotal && superCount >= 1) {
+    // Står lige efter runde 1+2 (fx 3–3), men SUPER MATCH-TIE er spillet
+    showSummary = true;
+  }
+}
+
 
 
 
