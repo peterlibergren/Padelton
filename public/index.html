@@ -566,29 +566,41 @@ const forceSummary = urlParams.get("summary") === "1";
 function parseSetsStr(setsStr) {
   if (!setsStr || typeof setsStr !== "string") return [];
 
+  // Hjælper: split et enkelt sæt-token i "home" og "away",
+  // men IGNORER bindestreger inde i parenteser, fx:
+  // "7-6(4)"     → ["7", "6(4)"]
+  // "6-6(2-7)"   → ["6", "6(2-7)"]
+  function splitSetToken(part) {
+    let depth = 0;
+    for (let i = 0; i < part.length; i++) {
+      const ch = part[i];
+      if (ch === "(") {
+        depth++;
+      } else if (ch === ")") {
+        if (depth > 0) depth--;
+      } else if (ch === "-" && depth === 0) {
+        // første "-" UDENFOR parenteser → skiller hjem/ude
+        const left  = part.slice(0, i).trim();
+        const right = part.slice(i + 1).trim();
+        return [left, right];
+      }
+    }
+    // fandt ingen "-" udenfor parenteser → hele strengen som "home"
+    return [part.trim(), ""];
+  }
+
   return setsStr
-    // tillad både komma og semikolon som separatorer
-    .split(/[;,]/)
+    .split(/[;,]/)        // sæt adskilt af komma/semikolon
     .map(s => s.trim())
     .filter(Boolean)
     .map(part => {
-      // prøv at splitte på "-" mellem hjemme og ude
-      const [homeRaw, awayRaw] = part.split("-").map(x => (x || "").trim());
-
-      // hvis vi ikke kan splitte ordentligt, brug hele strengen som "home"
-      if (!awayRaw) {
-        return {
-          home: part,
-          away: "",
-        };
-      }
-
+      const [homeRaw, awayRaw] = splitSetToken(part);
       return {
         home: homeRaw || "",
         away: awayRaw || "",
       };
     })
-    .slice(0, 3); // max 3 sæt
+    .slice(0, 3);         // max 3 sæt
 }
 
 
