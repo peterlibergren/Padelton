@@ -321,104 +321,116 @@ app.post("/api/updateScore", (req, res) => {
   const newFinished = !!c.matchFinished;
   const newWinner   = Number(c.winner || 0);
 
-  // LUNAR – hvis kampen lige er blevet færdig (transition false -> true),
-  // og banen er en LUNAR-bane, så:
-  //  - tæller vi kampen med i totalstillingen
-  //  - gemmer et snapshot i lunarResults til slutskærmen
-    if (!prevFinished && newFinished) {
-    const isLunar =
-      lunarEnabled &&
-      Array.isArray(lunarCourts) &&
-      lunarCourts.includes(courtId);
+  // Er denne bane en del af LUNAR?
+  const isLunar =
+    lunarEnabled &&
+    Array.isArray(lunarCourts) &&
+    lunarCourts.includes(courtId);
 
-    if (isLunar) {
-      // Opdater global stilling (antal vundne kampe)
+  // Kun relevant hvis det er en LUNAR-bane OG kampen er (eller er blevet) færdig
+  if (isLunar && newFinished) {
+    // Brug samme navne og spiller-indeks som scoreboardet
+    const names = computeEffectiveNames(c);
+
+    // Bestem grund-runden (1 eller 2) ud fra opsætningen
+    let round = 1;
+    const hasR2 =
+      Array.isArray(lunarRound2) &&
+      lunarRound2.some(e => e.courtId === courtId);
+    if (hasR2) round = 2;
+
+    // Er dette faktisk SUPER MATCH-kampen (7. kamp)?
+    let isSuperMatchRound = false;
+    if (
+      lunarSuperMatchCourtId != null &&
+      lunarSuperMatchCourtId === courtId &&
+      lunarSuperMatchPlayers
+    ) {
+      const sp = lunarSuperMatchPlayers;
+      const haveSuperIndices =
+        sp.homeIdx1 != null || sp.homeIdx2 != null ||
+        sp.awayIdx1 != null || sp.awayIdx2 != null;
+
+      // Kun hvis der er defineret spillere til 7. kamp,
+      // og den aktuelle kamp bruger præcis de samme indices,
+      // kalder vi det runde 7.
+      if (haveSuperIndices) {
+        const sameHome =
+          names.usedHomeIdx1 === sp.homeIdx1 &&
+          names.usedHomeIdx2 === sp.homeIdx2;
+        const sameAway =
+          names.usedAwayIdx1 === sp.awayIdx1 &&
+          names.usedAwayIdx2 === sp.awayIdx2;
+
+        if (sameHome && sameAway) {
+          isSuperMatchRound = true;
+        }
+      }
+    }
+
+    if (isSuperMatchRound) {
+      round = 7;
+    }
+
+    // ⭐ Tæl kun sejren med i totalstillingen,
+    // når vi går fra "ikke færdig" -> "færdig"
+    if (!prevFinished) {
       if (newWinner === 1) {
         lunarHomeWinsTotal++;
       } else if (newWinner === 2) {
         lunarAwayWinsTotal++;
       }
+    }
 
-      // 🔹 Brug samme navne og spiller-indeks som scoreboardet
-      const names = computeEffectiveNames(c);
+    // Byg snapshot af kampen til slutskærm (inkl. per-sæt data)
+    const snapshot = {
+      round,
+      courtId,
 
-      // Bestem grund-runden (1 eller 2) ud fra opsætningen
-      let round = 1;
-      const hasR2 =
-        Array.isArray(lunarRound2) &&
-        lunarRound2.some(e => e.courtId === courtId);
-      if (hasR2) round = 2;
+      // Navne på det tidspunkt kampen (sidst) opdateres som færdig
+      homeName: names.effHome,
+      awayName: names.effAway,
 
-      // Er dette faktisk SUPER MATCH-kampen (7. kamp)?
-      let isSuperMatchRound = false;
-      if (
-        lunarSuperMatchCourtId != null &&
-        lunarSuperMatchCourtId === courtId &&
-        lunarSuperMatchPlayers
-      ) {
-        const sp = lunarSuperMatchPlayers;
-        const haveSuperIndices =
-          sp.homeIdx1 != null || sp.homeIdx2 != null ||
-          sp.awayIdx1 != null || sp.awayIdx2 != null;
+      // Samlet set-streng (fx "6-4,5-7,7-6(4)" eller "6-4;5-7;7-6(4)")
+      setsStr: c.setsStr || "",
 
-        // Kun hvis der er defineret spillere til 7. kamp,
-        // og den aktuelle kamp bruger præcis de samme indices,
-        // kalder vi det runde 7.
-        if (haveSuperIndices) {
-          const sameHome =
-            names.usedHomeIdx1 === sp.homeIdx1 &&
-            names.usedHomeIdx2 === sp.homeIdx2;
-          const sameAway =
-            names.usedAwayIdx1 === sp.awayIdx1 &&
-            names.usedAwayIdx2 === sp.awayIdx2;
+      // Per-sæt score (de samme felter som scoreboardet bruger)
+      set1Home: c.set1Home,
+      set1Away: c.set1Away,
+      set1LoserTbPoints: c.set1LoserTbPoints,
+      set1LoserIsHome: c.set1LoserIsHome,
 
-          if (sameHome && sameAway) {
-            isSuperMatchRound = true;
-          }
-        }
-      }
+      set2Home: c.set2Home,
+      set2Away: c.set2Away,
+      set2LoserTbPoints: c.set2LoserTbPoints,
+      set2LoserIsHome: c.set2LoserIsHome,
 
-      if (isSuperMatchRound) {
-        round = 7;
-      }
+      // Totalt antal sæt vundet
+      homeSets: typeof c.homeSets === "number" ? c.homeSets : Number(c.homeSets || 0),
+      awaySets: typeof c.awaySets === "number" ? c.awaySets : Number(c.awaySets || 0),
 
-      // Gem resultat til slutskærm (inkl. per-sæt data)
-      lunarResults.push({
-        round,
-        courtId,
+      // Vinder af kampen
+      winner: newWinner,
+    };
 
-        // Navne på det tidspunkt kampen slutter
-        homeName: names.effHome,
-        awayName: names.effAway,
+    // 🔁 Enten opdatér eksisterende resultat for denne (bane, runde)
+    // eller tilføj et nyt, hvis det er første gang
+    const existingIndex = lunarResults.findIndex(
+      r => r.courtId === courtId && r.round === round
+    );
 
-        // Samlet set-streng (fx "6-4,5-7,7-6(4)")
-        setsStr: c.setsStr || "",
-
-        // Per-sæt score (de samme felter som scoreboardet bruger)
-        set1Home: c.set1Home,
-        set1Away: c.set1Away,
-        set1LoserTbPoints: c.set1LoserTbPoints,
-        set1LoserIsHome: c.set1LoserIsHome,
-
-        set2Home: c.set2Home,
-        set2Away: c.set2Away,
-        set2LoserTbPoints: c.set2LoserTbPoints,
-        set2LoserIsHome: c.set2LoserIsHome,
-
-        // Totalt antal sæt vundet
-        homeSets: typeof c.homeSets === "number" ? c.homeSets : Number(c.homeSets || 0),
-        awaySets: typeof c.awaySets === "number" ? c.awaySets : Number(c.awaySets || 0),
-
-        // Vinder af kampen
-        winner: newWinner,
-      });
-
+    if (existingIndex >= 0) {
+      lunarResults[existingIndex] = snapshot;
+      console.log(
+        `🔹 LUNAR kamp opdateret på bane ${courtId} (runde ${round}) – vinder: ${newWinner}`
+      );
+    } else {
+      lunarResults.push(snapshot);
       console.log(
         `🔹 LUNAR kamp afsluttet på bane ${courtId} (runde ${round}) – vinder: ${newWinner}`
       );
     }
   }
-
 
   c.lastUpdate = Date.now();
   c.online = true;
