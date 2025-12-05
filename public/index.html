@@ -433,12 +433,13 @@
       { id: 4, sponsor: "Bane 4 – 10-4" },
       { id: 5, sponsor: "Bane 5 – Slagteren" },
     ];
+
+    const list = document.getElementById("courtsList");
+    
     // Gem sidste state og låst slutscore pr. bane
     const lastStates = {};
     const lockedScore = {};
-
-    const list = document.getElementById("courtsList");
-
+    
     // Opret kort DOM for hver bane
     courts.forEach(court => {
       const card = document.createElement("article");
@@ -922,47 +923,55 @@ function renderLunarSummary(lunarResults) {
 
           const prev = lastStates[id];
 
-          // Tjek om der faktisk er et 3. sæt i setsStr
-          const setsParts = parseSetsStr(c.setsStr || "");
-          const hasThirdSet = setsParts.length >= 3;
+          // Hvor mange sæt har kampen i alt (slut)?
+          const totalSetsNow =
+            Number(c.homeSets ?? 0) + Number(c.awaySets ?? 0);
+          const endedInThreePlus =
+            matchFinished && hasMatch && totalSetsNow >= 3;
 
-          // Detekter reset: ingen kamp + nulstilling
+          // Detekter "rigtig reset": ingen kamp og alt 0/tomt
           const isReset =
             !hasMatch &&
-            (c.homeGames ?? 0) === 0 &&
-            (c.awayGames ?? 0) === 0 &&
-            (c.homeSets ?? 0) === 0 &&
-            (c.awaySets ?? 0) === 0 &&
+            Number(c.homeGames ?? 0) === 0 &&
+            Number(c.awayGames ?? 0) === 0 &&
+            Number(c.homeSets ?? 0) === 0 &&
+            Number(c.awaySets ?? 0) === 0 &&
             (!c.setsStr || c.setsStr.trim() === "");
 
           if (isReset) {
             lockedScore[id] = null;
           }
 
-          // Kamp lige gået fra "ikke slut" -> "slut"
+          // Har kampen lige nu *skiftet* til "slut"?
           const justFinished =
             matchFinished &&
             hasMatch &&
             (!prev || !prev.matchFinished);
 
-          // Kun lås score hvis:
-          //  - kampen er slut
-          //  - der har været et 3. sæt
-          if (!matchFinished || !hasThirdSet) {
-            lockedScore[id] = null;
-          } else if (justFinished && hasThirdSet) {
-            const src = prev && !prev.matchFinished ? prev : c;
-            lockedScore[id] = {
-              homePoints: src.homePoints,
-              awayPoints: src.awayPoints,
-              homePointsStr: src.homePointsStr,
-              awayPointsStr: src.awayPointsStr,
-              homeGames: src.homeGames,
-              awayGames: src.awayGames,
-            };
+          // Kun lås score i gul/blå, hvis kampen sluttede i 3. sæt
+          if (justFinished) {
+            if (endedInThreePlus) {
+              const src = prev && !prev.matchFinished ? prev : c;
+              lockedScore[id] = {
+                homePoints: src.homePoints,
+                awayPoints: src.awayPoints,
+                homePointsStr: src.homePointsStr,
+                awayPointsStr: src.awayPointsStr,
+                homeGames: src.homeGames,
+                awayGames: src.awayGames,
+              };
+            } else {
+              // Slut i 2 sæt → ingen låst score
+              lockedScore[id] = null;
+            }
           }
 
-          // --- LUNAR badges (som før, baseret på c) ---
+          // Hvis kampen ikke længere er slut (teoretisk) → ryd lås
+          if (!matchFinished) {
+            lockedScore[id] = null;
+          }
+
+          // --- LUNAR badges (som før) ---
           if (lunarBadgeEl) {
             if (c.isLunar) {
               lunarBadgeEl.classList.remove("hidden");
@@ -1015,7 +1024,7 @@ function renderLunarSummary(lunarResults) {
           if (awayName1El) awayName1El.textContent = awayParts[0] || awayRaw || "Ude";
           if (awayName2El) awayName2El.textContent = awayParts[1] || "";
 
-          // Sæt 1 og 2 som nu (de grå bokse)
+          // Sæt 1 og 2 (grå bokse) – uændret
           const set1 = buildSetStrings(c, 1);
           const set2 = buildSetStrings(c, 2);
 
@@ -1072,17 +1081,17 @@ function renderLunarSummary(lunarResults) {
             }
           }
 
-          // --- GUL/BLÅ BOKSE ---
+          // --- GUL (point) + BLÅ (partier) ---
 
-          if (matchFinished && !hasThirdSet) {
-            // Kamp sluttet i 2 sæt → ryd gul/blå
+          if (matchFinished && !endedInThreePlus) {
+            // Slut i 2 sæt → gul/blå ryger til "–"
             if (homePointsEl) homePointsEl.textContent = "–";
             if (awayPointsEl) awayPointsEl.textContent = "–";
             if (homeGamesEl)  homeGamesEl.textContent  = "–";
             if (awayGamesEl)  awayGamesEl.textContent  = "–";
           } else {
-            // Live eller 3. sæt: brug evt. låst score (hvis findes), ellers live
-            const scoreSource = (matchFinished && hasThirdSet && lockedScore[id])
+            // I gang ELLER slut i 3. sæt → brug låst score (hvis findes), ellers live
+            const source = (matchFinished && endedInThreePlus && lockedScore[id])
               ? lockedScore[id]
               : {
                   homePoints: c.homePoints,
@@ -1094,26 +1103,26 @@ function renderLunarSummary(lunarResults) {
                 };
 
             if (homePointsEl) {
-              const hpStr = scoreSource.homePointsStr ?? null;
+              const hpStr = source.homePointsStr ?? null;
               homePointsEl.textContent =
                 hpStr !== null && hpStr !== undefined && hpStr !== ""
                   ? hpStr
-                  : String(scoreSource.homePoints ?? "");
+                  : String(source.homePoints ?? "");
             }
 
             if (awayPointsEl) {
-              const apStr = scoreSource.awayPointsStr ?? null;
+              const apStr = source.awayPointsStr ?? null;
               awayPointsEl.textContent =
                 apStr !== null && apStr !== undefined && apStr !== ""
                   ? apStr
-                  : String(scoreSource.awayPoints ?? "");
+                  : String(source.awayPoints ?? "");
             }
 
-            if (homeGamesEl) homeGamesEl.textContent = String(scoreSource.homeGames ?? 0);
-            if (awayGamesEl) awayGamesEl.textContent = String(scoreSource.awayGames ?? 0);
+            if (homeGamesEl) homeGamesEl.textContent = String(source.homeGames ?? 0);
+            if (awayGamesEl) awayGamesEl.textContent = String(source.awayGames ?? 0);
           }
 
-          // Samlet sætresumé
+          // Samlet sætresumé (her kan 3. sæt/match-tiebreak ses)
           if (setsSummaryEl) {
             if (c.setsStr && c.setsStr.trim() !== "") {
               setsSummaryEl.textContent = "• " + c.setsStr;
@@ -1142,7 +1151,7 @@ function renderLunarSummary(lunarResults) {
             updatedEl.textContent = timeStr;
           }
 
-          // Til sidst: gem denne state som "sidste live-state"
+          // Til sidst: husk denne state til næste tick
           lastStates[id] = c;
         });
 
