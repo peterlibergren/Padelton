@@ -433,6 +433,9 @@
       { id: 4, sponsor: "Bane 4 – 10-4" },
       { id: 5, sponsor: "Bane 5 – Slagteren" },
     ];
+    // Gem sidste state og låst slutscore pr. bane
+    const lastStates = {};
+    const lockedScore = {};
 
     const list = document.getElementById("courtsList");
 
@@ -904,7 +907,62 @@ function renderLunarSummary(lunarResults) {
 
           if (!statusEl) return;
 
-          // LUNAR badges
+          const hasMatch      = c.hasMatch !== undefined ? c.hasMatch : true;
+          const matchFinished = !!c.matchFinished;
+          const winner        = typeof c.winner === "number" ? c.winner : 0;
+          const mtb3rd        = !!c.mtb3rd;
+
+          // --- init cache-strukturer ---
+          if (!Object.prototype.hasOwnProperty.call(lastStates, id)) {
+            lastStates[id] = null;
+          }
+          if (!Object.prototype.hasOwnProperty.call(lockedScore, id)) {
+            lockedScore[id] = null;
+          }
+
+          const prev = lastStates[id];
+
+          // Tjek om der faktisk er et 3. sæt i setsStr
+          const setsParts = parseSetsStr(c.setsStr || "");
+          const hasThirdSet = setsParts.length >= 3;
+
+          // Detekter reset: ingen kamp + nulstilling
+          const isReset =
+            !hasMatch &&
+            (c.homeGames ?? 0) === 0 &&
+            (c.awayGames ?? 0) === 0 &&
+            (c.homeSets ?? 0) === 0 &&
+            (c.awaySets ?? 0) === 0 &&
+            (!c.setsStr || c.setsStr.trim() === "");
+
+          if (isReset) {
+            lockedScore[id] = null;
+          }
+
+          // Kamp lige gået fra "ikke slut" -> "slut"
+          const justFinished =
+            matchFinished &&
+            hasMatch &&
+            (!prev || !prev.matchFinished);
+
+          // Kun lås score hvis:
+          //  - kampen er slut
+          //  - der har været et 3. sæt
+          if (!matchFinished || !hasThirdSet) {
+            lockedScore[id] = null;
+          } else if (justFinished && hasThirdSet) {
+            const src = prev && !prev.matchFinished ? prev : c;
+            lockedScore[id] = {
+              homePoints: src.homePoints,
+              awayPoints: src.awayPoints,
+              homePointsStr: src.homePointsStr,
+              awayPointsStr: src.awayPointsStr,
+              homeGames: src.homeGames,
+              awayGames: src.awayGames,
+            };
+          }
+
+          // --- LUNAR badges (som før, baseret på c) ---
           if (lunarBadgeEl) {
             if (c.isLunar) {
               lunarBadgeEl.classList.remove("hidden");
@@ -929,11 +987,7 @@ function renderLunarSummary(lunarResults) {
             }
           }
 
-          const hasMatch = c.hasMatch !== undefined ? c.hasMatch : true;
-          const matchFinished = !!c.matchFinished;
-          const winner = typeof c.winner === "number" ? c.winner : 0;
-          const mtb3rd = !!c.mtb3rd;
-
+          // Status-tekst
           if (!hasMatch) {
             statusEl.textContent = "Ingen kamp";
             statusEl.classList.remove("error");
@@ -961,7 +1015,7 @@ function renderLunarSummary(lunarResults) {
           if (awayName1El) awayName1El.textContent = awayParts[0] || awayRaw || "Ude";
           if (awayName2El) awayName2El.textContent = awayParts[1] || "";
 
-          // Sæt 1 og 2
+          // Sæt 1 og 2 som nu (de grå bokse)
           const set1 = buildSetStrings(c, 1);
           const set2 = buildSetStrings(c, 2);
 
@@ -1018,24 +1072,46 @@ function renderLunarSummary(lunarResults) {
             }
           }
 
-          // Point
-          if (homePointsEl) {
-            const hpStr = c.homePointsStr ?? null;
-            homePointsEl.textContent = (hpStr !== null && hpStr !== undefined)
-              ? hpStr
-              : String(c.homePoints ?? "");
-          }
+          // --- GUL/BLÅ BOKSE ---
 
-          if (awayPointsEl) {
-            const apStr = c.awayPointsStr ?? null;
-            awayPointsEl.textContent = (apStr !== null && apStr !== undefined)
-              ? apStr
-              : String(c.awayPoints ?? "");
-          }
+          if (matchFinished && !hasThirdSet) {
+            // Kamp sluttet i 2 sæt → ryd gul/blå
+            if (homePointsEl) homePointsEl.textContent = "–";
+            if (awayPointsEl) awayPointsEl.textContent = "–";
+            if (homeGamesEl)  homeGamesEl.textContent  = "–";
+            if (awayGamesEl)  awayGamesEl.textContent  = "–";
+          } else {
+            // Live eller 3. sæt: brug evt. låst score (hvis findes), ellers live
+            const scoreSource = (matchFinished && hasThirdSet && lockedScore[id])
+              ? lockedScore[id]
+              : {
+                  homePoints: c.homePoints,
+                  awayPoints: c.awayPoints,
+                  homePointsStr: c.homePointsStr,
+                  awayPointsStr: c.awayPointsStr,
+                  homeGames: c.homeGames,
+                  awayGames: c.awayGames,
+                };
 
-          // Partier
-          if (homeGamesEl) homeGamesEl.textContent = String(c.homeGames ?? 0);
-          if (awayGamesEl) awayGamesEl.textContent = String(c.awayGames ?? 0);
+            if (homePointsEl) {
+              const hpStr = scoreSource.homePointsStr ?? null;
+              homePointsEl.textContent =
+                hpStr !== null && hpStr !== undefined && hpStr !== ""
+                  ? hpStr
+                  : String(scoreSource.homePoints ?? "");
+            }
+
+            if (awayPointsEl) {
+              const apStr = scoreSource.awayPointsStr ?? null;
+              awayPointsEl.textContent =
+                apStr !== null && apStr !== undefined && apStr !== ""
+                  ? apStr
+                  : String(scoreSource.awayPoints ?? "");
+            }
+
+            if (homeGamesEl) homeGamesEl.textContent = String(scoreSource.homeGames ?? 0);
+            if (awayGamesEl) awayGamesEl.textContent = String(scoreSource.awayGames ?? 0);
+          }
 
           // Samlet sætresumé
           if (setsSummaryEl) {
@@ -1065,7 +1141,11 @@ function renderLunarSummary(lunarResults) {
             });
             updatedEl.textContent = timeStr;
           }
+
+          // Til sidst: gem denne state som "sidste live-state"
+          lastStates[id] = c;
         });
+
 
       } catch (err) {
         console.error("Fejl ved hentning af courts/adminState:", err);
