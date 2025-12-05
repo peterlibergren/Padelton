@@ -606,7 +606,25 @@ function parseSetsStr(setsStr) {
 
 // Hjælper: byg sætscore ud fra resultatobjektet (kombinerer felter + setsStr)
 function getSetDisplayFromResult(m, setIndex) {
-  // Først forsøg: brug de per-sæt-felter, hvis de giver mening
+  // 🔹 Specielt for 3. sæt:
+  // Vis bare det rå 3. token fra setsStr – fx "6-6(4-7)"
+  // uden at splitte det op. Så kan vi ikke komme til at klippe noget af.
+  if (setIndex === 3 && m.setsStr) {
+    const tokens = (m.setsStr || "")
+      .split(/[;,]/)
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    if (tokens.length >= 3) {
+      // hele strengen for 3. sæt i én "home"-streng
+      return {
+        home: tokens[2],
+        away: "",
+      };
+    }
+  }
+
+  // 🔹 For 1. og 2. sæt: brug de normale felter som før
   const homeKey = setIndex === 1 ? "set1Home" : setIndex === 2 ? "set2Home" : null;
   const awayKey = setIndex === 1 ? "set1Away" : setIndex === 2 ? "set2Away" : null;
   const tbKey   = setIndex === 1 ? "set1LoserTbPoints" : setIndex === 2 ? "set2LoserTbPoints" : null;
@@ -632,7 +650,7 @@ function getSetDisplayFromResult(m, setIndex) {
     }
   }
 
-  // Fallback: parse setsStr (fx "6-4,5-7,7-6(4)")
+  // 🔹 Fallback: brug parseSetsStr for sæt 1 og 2, hvis noget er gemt i setsStr
   const parsed = parseSetsStr(m.setsStr || "");
   const idx = setIndex - 1;
   if (parsed[idx]) {
@@ -644,6 +662,7 @@ function getSetDisplayFromResult(m, setIndex) {
 
   return { home: "", away: "" };
 }
+
 
 function formatSetCell(setObj) {
   if (!setObj) return "";
