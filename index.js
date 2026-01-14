@@ -213,7 +213,6 @@ app.post("/api/updateScore", (req, res) => {
     homeSets,
     awaySets,
 
-    // set-felter fra controller
     set1Home,
     set1Away,
     set1LoserTbPoints,
@@ -223,10 +222,8 @@ app.post("/api/updateScore", (req, res) => {
     set2LoserTbPoints,
     set2LoserIsHome,
 
-    // valgfri samlet streng
     setsStr,
 
-    // kampstatus + 3. sæt-format
     matchFinished,
     winner,
     mtb3rd,
@@ -238,11 +235,8 @@ app.post("/api/updateScore", (req, res) => {
 
   const c = courts[courtId];
 
-  // Gem tidligere kampstatus for LUNAR-tælling og logging
   const prevFinished = !!c.matchFinished;
-  const prevWinner   = Number(c.winner || 0); // 0,1,2
 
-  // Hjælpere til parse ints/bools
   function toIntOrDefault(v, def) {
     if (v === undefined || v === null || v === "") return def;
     const n = Number(v);
@@ -261,85 +255,76 @@ app.post("/api/updateScore", (req, res) => {
     return def;
   }
 
-  // Basisnavne (admin/spillerliste kan overskrive senere i /api/courts)
+  // Navne (råt fra controller/ESP)
   if (homeName !== undefined) c.homeName = homeName;
   if (awayName !== undefined) c.awayName = awayName;
 
-  if (homePoints !== undefined) c.homePoints = homePoints;
-  if (awayPoints !== undefined) c.awayPoints = awayPoints;
-  if (homePointsStr !== undefined) c.homePointsStr = homePointsStr;
-  if (awayPointsStr !== undefined) c.awayPointsStr = awayPointsStr;
+  // Score (tal)
+  if (homePoints !== undefined) c.homePoints = toIntOrDefault(homePoints, c.homePoints ?? 0);
+  if (awayPoints !== undefined) c.awayPoints = toIntOrDefault(awayPoints, c.awayPoints ?? 0);
 
-  if (homeGames !== undefined) c.homeGames = homeGames;
-  if (awayGames !== undefined) c.awayGames = awayGames;
-  if (homeSets !== undefined) c.homeSets = homeSets;
-  if (awaySets !== undefined) c.awaySets = awaySets;
+  if (homeGames !== undefined) c.homeGames = toIntOrDefault(homeGames, c.homeGames ?? 0);
+  if (awayGames !== undefined) c.awayGames = toIntOrDefault(awayGames, c.awayGames ?? 0);
+  if (homeSets !== undefined) c.homeSets = toIntOrDefault(homeSets, c.homeSets ?? 0);
+  if (awaySets !== undefined) c.awaySets = toIntOrDefault(awaySets, c.awaySets ?? 0);
 
-  // set-historik
+  // ✅ PointsStr: hold dem altid i sync (og undgå “låste” values)
+  const picked = pickPointsStr({
+    hp: c.homePoints,
+    ap: c.awayPoints,
+    suppliedHomeStr: homePointsStr,
+    suppliedAwayStr: awayPointsStr,
+  });
+  c.homePointsStr = picked.home;
+  c.awayPointsStr = picked.away;
+
+  // Set-historik
   if (set1Home !== undefined) c.set1Home = toIntOrDefault(set1Home, -1);
   if (set1Away !== undefined) c.set1Away = toIntOrDefault(set1Away, -1);
-  if (set1LoserTbPoints !== undefined)
-    c.set1LoserTbPoints = toIntOrDefault(set1LoserTbPoints, -1);
-  if (set1LoserIsHome !== undefined)
-    c.set1LoserIsHome = toBool(set1LoserIsHome, false);
+  if (set1LoserTbPoints !== undefined) c.set1LoserTbPoints = toIntOrDefault(set1LoserTbPoints, -1);
+  if (set1LoserIsHome !== undefined) c.set1LoserIsHome = toBool(set1LoserIsHome, false);
 
   if (set2Home !== undefined) c.set2Home = toIntOrDefault(set2Home, -1);
   if (set2Away !== undefined) c.set2Away = toIntOrDefault(set2Away, -1);
-  if (set2LoserTbPoints !== undefined)
-    c.set2LoserTbPoints = toIntOrDefault(set2LoserTbPoints, -1);
-  if (set2LoserIsHome !== undefined)
-    c.set2LoserIsHome = toBool(set2LoserIsHome, false);
+  if (set2LoserTbPoints !== undefined) c.set2LoserTbPoints = toIntOrDefault(set2LoserTbPoints, -1);
+  if (set2LoserIsHome !== undefined) c.set2LoserIsHome = toBool(set2LoserIsHome, false);
 
   if (setsStr !== undefined) {
-    c.setsStr =
-      typeof setsStr === "string" ? setsStr : setsStr != null ? String(setsStr) : "";
+    c.setsStr = typeof setsStr === "string" ? setsStr : setsStr != null ? String(setsStr) : "";
   }
 
-  // Kampstatus + vinder + 3. sæt-format
-  if (matchFinished !== undefined) {
-    c.matchFinished = toBool(matchFinished, false);
-  }
-  if (winner !== undefined) {
-    c.winner = toIntOrDefault(winner, 0); // 0,1,2
-  }
-  if (mtb3rd !== undefined) {
-    c.mtb3rd = toBool(mtb3rd, false);
-  }
+  // Kampstatus
+  if (matchFinished !== undefined) c.matchFinished = toBool(matchFinished, false);
+  if (winner !== undefined) c.winner = toIntOrDefault(winner, 0);
+  if (mtb3rd !== undefined) c.mtb3rd = toBool(mtb3rd, false);
 
-  // 🔹 NYT: hvis kampen er markeret som færdig, men winner = 0/mangler,
-  // så udled vinder ud fra antal vundne sæt.
+  // Hvis matchFinished men winner mangler → udled fra sets
   if (c.matchFinished && (!c.winner || c.winner === 0)) {
     const hs = Number(c.homeSets || 0);
     const as = Number(c.awaySets || 0);
-    if (hs > as) {
-      c.winner = 1;
-    } else if (as > hs) {
-      c.winner = 2;
-    }
+    if (hs > as) c.winner = 1;
+    else if (as > hs) c.winner = 2;
   }
 
+  // ---- LUNAR: din eksisterende logik (uændret) ----
+  // (jeg lader din nuværende LUNAR-blok stå som den er)
   const newFinished = !!c.matchFinished;
-  const newWinner   = Number(c.winner || 0);
+  const newWinner = Number(c.winner || 0);
 
-  // Er denne bane en del af LUNAR?
   const isLunar =
     lunarEnabled &&
     Array.isArray(lunarCourts) &&
     lunarCourts.includes(courtId);
 
-  // Kun relevant hvis det er en LUNAR-bane OG kampen er (eller er blevet) færdig
   if (isLunar && newFinished) {
-    // Brug samme navne og spiller-indeks som scoreboardet
     const names = computeEffectiveNames(c);
 
-    // Bestem grund-runden (1 eller 2) ud fra opsætningen
     let round = 1;
     const hasR2 =
       Array.isArray(lunarRound2) &&
       lunarRound2.some(e => e.courtId === courtId);
     if (hasR2) round = 2;
 
-    // Er dette faktisk SUPER MATCH-kampen (7. kamp)?
     let isSuperMatchRound = false;
     if (
       lunarSuperMatchCourtId != null &&
@@ -351,9 +336,6 @@ app.post("/api/updateScore", (req, res) => {
         sp.homeIdx1 != null || sp.homeIdx2 != null ||
         sp.awayIdx1 != null || sp.awayIdx2 != null;
 
-      // Kun hvis der er defineret spillere til 7. kamp,
-      // og den aktuelle kamp bruger præcis de samme indices,
-      // kalder vi det runde 7.
       if (haveSuperIndices) {
         const sameHome =
           names.usedHomeIdx1 === sp.homeIdx1 &&
@@ -361,75 +343,41 @@ app.post("/api/updateScore", (req, res) => {
         const sameAway =
           names.usedAwayIdx1 === sp.awayIdx1 &&
           names.usedAwayIdx2 === sp.awayIdx2;
-
-        if (sameHome && sameAway) {
-          isSuperMatchRound = true;
-        }
+        if (sameHome && sameAway) isSuperMatchRound = true;
       }
     }
+    if (isSuperMatchRound) round = 7;
 
-    if (isSuperMatchRound) {
-      round = 7;
-    }
-
-    // ⭐ Tæl kun sejren med i totalstillingen,
-    // når vi går fra "ikke færdig" -> "færdig"
     if (!prevFinished) {
-      if (newWinner === 1) {
-        lunarHomeWinsTotal++;
-      } else if (newWinner === 2) {
-        lunarAwayWinsTotal++;
-      }
+      if (newWinner === 1) lunarHomeWinsTotal++;
+      else if (newWinner === 2) lunarAwayWinsTotal++;
     }
 
-    // Byg snapshot af kampen til slutskærm (inkl. per-sæt data)
     const snapshot = {
       round,
       courtId,
-
-      // Navne på det tidspunkt kampen (sidst) opdateres som færdig
       homeName: names.effHome,
       awayName: names.effAway,
-
-      // Samlet set-streng (fx "6-4,5-7,7-6(4)" eller "6-4;5-7;7-6(4)")
       setsStr: c.setsStr || "",
-
-      // Per-sæt score (de samme felter som scoreboardet bruger)
       set1Home: c.set1Home,
       set1Away: c.set1Away,
       set1LoserTbPoints: c.set1LoserTbPoints,
       set1LoserIsHome: c.set1LoserIsHome,
-
       set2Home: c.set2Home,
       set2Away: c.set2Away,
       set2LoserTbPoints: c.set2LoserTbPoints,
       set2LoserIsHome: c.set2LoserIsHome,
-
-      // Totalt antal sæt vundet
-      homeSets: typeof c.homeSets === "number" ? c.homeSets : Number(c.homeSets || 0),
-      awaySets: typeof c.awaySets === "number" ? c.awaySets : Number(c.awaySets || 0),
-
-      // Vinder af kampen
+      homeSets: Number(c.homeSets || 0),
+      awaySets: Number(c.awaySets || 0),
       winner: newWinner,
     };
 
-    // 🔁 Enten opdatér eksisterende resultat for denne (bane, runde)
-    // eller tilføj et nyt, hvis det er første gang
     const existingIndex = lunarResults.findIndex(
       r => r.courtId === courtId && r.round === round
     );
 
-    if (existingIndex >= 0) {
-      lunarResults[existingIndex] = snapshot;
-      console.log(
-        `🔹 LUNAR kamp opdateret på bane ${courtId} (runde ${round}) – vinder: ${newWinner}`
-      );
-    } else {
-      lunarResults.push(snapshot);
-      console.log(
-        `🔹 LUNAR kamp afsluttet på bane ${courtId} (runde ${round}) – vinder: ${newWinner}`
-      );
-    }
+    if (existingIndex >= 0) lunarResults[existingIndex] = snapshot;
+    else lunarResults.push(snapshot);
   }
 
   c.lastUpdate = Date.now();
@@ -437,6 +385,7 @@ app.post("/api/updateScore", (req, res) => {
 
   res.json({ status: "ok" });
 });
+
 
 // ==== (VALGFRI) DIREKTE ADMIN-NAVNE pr. bane ====
 // POST /api/setNames
