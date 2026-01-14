@@ -196,6 +196,22 @@ function computeEffectiveNames(c) {
   };
 }
 
+function pickPointsStr({ hp, ap, suppliedHomeStr, suppliedAwayStr }) {
+  const clean = (v) => (typeof v === "string" ? v.trim() : "");
+
+  // Hvis ESP sender en “pæn” streng (fx "15", "30", "40", "Ad", "7"), brug den
+  const hs = clean(suppliedHomeStr);
+  const as = clean(suppliedAwayStr);
+
+  // Fallback: brug tallet som tekst
+  const fallbackH = Number.isFinite(Number(hp)) ? String(Number(hp)) : "0";
+  const fallbackA = Number.isFinite(Number(ap)) ? String(Number(ap)) : "0";
+
+  return {
+    home: hs !== "" ? hs : fallbackH,
+    away: as !== "" ? as : fallbackA,
+  };
+}
 
 // ==== CONTROLLER → CLOUD: scoreopdatering ====
 // POST /api/updateScore
@@ -270,6 +286,8 @@ app.post("/api/updateScore", (req, res) => {
   if (homeSets !== undefined) c.homeSets = toIntOrDefault(homeSets, c.homeSets ?? 0);
   if (awaySets !== undefined) c.awaySets = toIntOrDefault(awaySets, c.awaySets ?? 0);
 
+
+  
   // ✅ PointsStr: hold dem altid i sync (og undgå “låste” values)
   const picked = pickPointsStr({
     hp: c.homePoints,
