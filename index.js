@@ -229,6 +229,8 @@ app.post("/api/updateScore", (req, res) => {
     mtb3rd,
   } = req.body || {};
 
+  console.log("[updateScore] body =", req.body);
+
   if (!courtId || courtId < 1 || courtId > 5) {
     return res.status(400).json({ error: "Invalid courtId" });
   }
