@@ -84,6 +84,11 @@
       margin-bottom: 6px;
     }
 
+    .inline-status {
+      margin-left: 8px;
+      font-size: 0.8rem;
+    }
+
     /* spiller-lister */
     .roster-grid {
       display: grid;
@@ -209,7 +214,7 @@
     @media (max-width: 600px) {
       th:nth-child(5),
       td:nth-child(5) {
-        display: none; /* skjul status-kolonne på meget smal mobil */
+        display: none;
       }
     }
 
@@ -263,9 +268,28 @@
       margin-top: 4px;
     }
 
-    .inline-status {
-      margin-left: 8px;
+    /* Banenavne */
+    .meta-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    @media (min-width: 650px) {
+      .meta-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    .meta-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .meta-row .meta-label {
+      min-width: 70px;
       font-size: 0.8rem;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
     }
   </style>
 </head>
@@ -280,6 +304,21 @@
   </header>
 
   <main>
+    <!-- BANENAVNE -->
+    <section>
+      <h2>Banenavne</h2>
+      <div class="small">
+        Indtast banenavne/sponsorer. De gemmes permanent (overlever genstart), indtil de ændres igen.
+      </div>
+
+      <div class="meta-grid" id="courtsMetaInputs"></div>
+
+      <div class="btn-row">
+        <button type="button" onclick="saveCourtsMeta()">Gem banenavne</button>
+        <span id="courtsMetaStatus" class="inline-status"></span>
+      </div>
+    </section>
+
     <!-- SPILLERLISTER -->
     <section>
       <h2>Spillerliste</h2>
@@ -318,15 +357,12 @@
         á 3 kampe. Hvis stillingen efter 6 kampe er 3–3, kan der spilles en 7. kamp (SUPER MATCH-TIE).
       </div>
 
-      <div class="lunar-courts" id="lunarCourtsContainer">
-        <!-- Checkboxe for baner indsættes via JS -->
-      </div>
+      <div class="lunar-courts" id="lunarCourtsContainer"></div>
 
       <div class="small" style="margin-top:4px;">
         SUPER MATCH-TIE (7. kamp) bane:
         <select id="lunarSuperMatchSelect">
           <option value="">(ingen)</option>
-          <!-- udfyldes via JS med de valgte LUNAR-baner -->
         </select>
       </div>
 
@@ -359,9 +395,7 @@
             <th>Status</th>
           </tr>
         </thead>
-        <tbody id="lunarRound1Body">
-          <!-- Række pr. valgt bane via JS -->
-        </tbody>
+        <tbody id="lunarRound1Body"></tbody>
       </table>
 
       <!-- Runde 2 -->
@@ -376,9 +410,7 @@
             <th>Status</th>
           </tr>
         </thead>
-        <tbody id="lunarRound2Body">
-          <!-- Række pr. valgt bane via JS -->
-        </tbody>
+        <tbody id="lunarRound2Body"></tbody>
       </table>
 
       <!-- SUPER MATCH-TIE (7. kamp) spillere -->
@@ -423,7 +455,6 @@
       <div class="lunar-note">
         Tip: Du kan frit lave nye konstellationer i runde 2 når runde 1 er færdigspillet, og definere
         en særskilt opstilling til SUPER MATCH-TIE.
-        (Index-visningen bruger disse data til at vise navne og samlet stilling.)
       </div>
     </section>
 
@@ -435,13 +466,10 @@
         listen ovenfor) der spiller på hver bane.
       </div>
 
-      <!-- NYT: valg af hvilke standard-baner der skal vises på index.html -->
       <div class="small" style="margin-top:8px;">
         Vælg hvilke baner der skal vises på scoreboard (index.html), når LUNAR-format ikke er aktivt:
       </div>
-      <div class="lunar-courts" id="standardCourtsContainer">
-        <!-- Checkboxe for standard-visning indsættes via JS -->
-      </div>
+      <div class="lunar-courts" id="standardCourtsContainer"></div>
       <div class="btn-row">
         <button type="button" onclick="saveStandardVisibleCourts()">Gem visning (standard)</button>
         <span id="standardCourtsStatus" class="inline-status"></span>
@@ -463,7 +491,10 @@
   </main>
 
   <script>
-    const courtsMeta = [
+    const MAX_PLAYERS = 16;
+
+    // Default meta (overskrives fra server hvis courtsMeta findes)
+    let courtsMeta = [
       { id: 1, sponsor: "Bane 1 – BetaPack" },
       { id: 2, sponsor: "Bane 2 – Brdr. Thybo" },
       { id: 3, sponsor: "Bane 3 – Schantz" },
@@ -471,12 +502,14 @@
       { id: 5, sponsor: "Bane 5 – Slagteren" },
     ];
 
-    const MAX_PLAYERS = 16;
-
     const homeRosterDiv = document.getElementById("homeRoster");
     const awayRosterDiv = document.getElementById("awayRoster");
     const courtsBody = document.getElementById("courtsBody");
     const rosterStatus = document.getElementById("rosterStatus");
+
+    // Banenavne refs
+    const courtsMetaInputs = document.getElementById("courtsMetaInputs");
+    const courtsMetaStatus = document.getElementById("courtsMetaStatus");
 
     // LUNAR refs
     const lunarEnabledCheckbox = document.getElementById("lunarEnabled");
@@ -494,9 +527,14 @@
     const superAwayIdx2 = document.getElementById("superAwayIdx2");
     const lunarSuperStatus = document.getElementById("lunar-super-status");
 
-    // Standard courts visibility refs (NYT)
+    // Standard courts visibility refs
     const standardCourtsContainer = document.getElementById("standardCourtsContainer");
     const standardCourtsStatus = document.getElementById("standardCourtsStatus");
+
+    function getCourtLabel(courtId) {
+      const c = courtsMeta.find(x => x.id === Number(courtId));
+      return c ? c.sponsor : `Bane ${courtId}`;
+    }
 
     // Hjælper til at udfylde en select med (ingen), 1..MAX_PLAYERS
     function fillSelectOptionsForElement(sel) {
@@ -540,6 +578,32 @@
       }
     }
 
+    // Banenavne UI
+    function buildCourtsMetaInputs() {
+      if (!courtsMetaInputs) return;
+      courtsMetaInputs.innerHTML = "";
+
+      courtsMeta.forEach(c => {
+        const row = document.createElement("div");
+        row.className = "meta-row";
+        row.innerHTML = `
+          <div class="meta-label">Bane ${c.id}</div>
+          <input type="text" id="courtMeta-${c.id}" placeholder="Navn/sponsor" value="${escapeHtml(c.sponsor || "")}" />
+        `;
+        courtsMetaInputs.appendChild(row);
+      });
+    }
+
+    // Minimal HTML escape til input value (undgår at knække DOM hvis der er " osv.)
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
     // Byg bane-rækker (standard)
     function buildCourtRows() {
       courtsBody.innerHTML = "";
@@ -547,7 +611,7 @@
       courtsMeta.forEach(court => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td>${court.sponsor}</td>
+          <td><span class="court-label" data-court-id="${court.id}">${escapeHtml(getCourtLabel(court.id))}</span></td>
           <td>
             <div style="display:flex; gap:4px;">
               <select id="homeIdx1-${court.id}"></select>
@@ -589,7 +653,7 @@
           <input type="checkbox"
                  class="lunar-court-checkbox"
                  data-court-id="${court.id}" />
-          <span>${court.sponsor}</span>
+          <span class="court-label" data-court-id="${court.id}">${escapeHtml(getCourtLabel(court.id))}</span>
         `;
         lunarCourtsContainer.appendChild(label);
       });
@@ -608,7 +672,7 @@
       return ids;
     }
 
-    // NYT: Byg checkboxe til standard visning (baner til index.html)
+    // Byg checkboxe til standard visning (baner til index.html)
     function buildStandardCourtCheckboxes() {
       if (!standardCourtsContainer) return;
       standardCourtsContainer.innerHTML = "";
@@ -620,7 +684,7 @@
           <input type="checkbox"
                  class="standard-court-checkbox"
                  data-court-id="${court.id}" />
-          <span>${court.sponsor}</span>
+          <span class="court-label" data-court-id="${court.id}">${escapeHtml(getCourtLabel(court.id))}</span>
         `;
         standardCourtsContainer.appendChild(label);
       });
@@ -650,11 +714,10 @@
       selectedCourts.forEach(court => {
         const opt = document.createElement("option");
         opt.value = String(court.id);
-        opt.textContent = court.sponsor;
+        opt.textContent = getCourtLabel(court.id);
         lunarSuperMatchSelect.appendChild(opt);
       });
 
-      // prøv at bevare tidligere valg hvis muligt
       const hasPrevious = Array.from(lunarSuperMatchSelect.options)
         .some(o => o.value === previous);
       if (hasPrevious) {
@@ -666,7 +729,6 @@
       const boxes = document.querySelectorAll(".lunar-court-checkbox");
       const checked = Array.from(boxes).filter(b => b.checked);
 
-      // max 3 baner
       if (checked.length > 3) {
         e.target.checked = false;
         return;
@@ -675,7 +737,6 @@
       rebuildLunarRoundRows();
     }
 
-    // Vis/skjul LUNAR-runder sektion afhængig af checkbox
     function handleLunarToggleChange() {
       const enabled = lunarEnabledCheckbox.checked;
       lunarRoundsSection.classList.toggle("hidden", !enabled);
@@ -690,9 +751,7 @@
 
       updateSuperMatchSelect(selectedCourts);
 
-      // Runde 1
       lunarRound1Body.innerHTML = "";
-      // Runde 2
       lunarRound2Body.innerHTML = "";
 
       if (selectedCourts.length === 0) {
@@ -707,10 +766,9 @@
       }
 
       selectedCourts.forEach(court => {
-        // Runde 1 række
         const tr1 = document.createElement("tr");
         tr1.innerHTML = `
-          <td>${court.sponsor}</td>
+          <td>${escapeHtml(getCourtLabel(court.id))}</td>
           <td>
             <div style="display:flex; gap:4px;">
               <select id="lunar-r1-homeIdx1-${court.id}"></select>
@@ -732,10 +790,9 @@
         `;
         lunarRound1Body.appendChild(tr1);
 
-        // Runde 2 række
         const tr2 = document.createElement("tr");
         tr2.innerHTML = `
-          <td>${court.sponsor}</td>
+          <td>${escapeHtml(getCourtLabel(court.id))}</td>
           <td>
             <div style="display:flex; gap:4px;">
               <select id="lunar-r2-homeIdx1-${court.id}"></select>
@@ -758,7 +815,6 @@
         lunarRound2Body.appendChild(tr2);
       });
 
-      // Udfyld select-options for alle LUNAR-selects
       selectedCourts.forEach(court => {
         [1, 2].forEach(round => {
           ["homeIdx1", "homeIdx2", "awayIdx1", "awayIdx2"].forEach(prefix => {
@@ -769,18 +825,85 @@
       });
     }
 
-    // Hent adminState fra server (spillere + bane-assignments + LUNAR + standard visning)
-    async function loadAdminState() {
+    // --- Gem banenavne ---
+    async function saveCourtsMeta() {
+      if (!courtsMetaStatus) return;
+
+      const next = courtsMeta.map(c => {
+        const input = document.getElementById(`courtMeta-${c.id}`);
+        return {
+          id: c.id,
+          sponsor: input ? String(input.value || "").trim() : (c.sponsor || "")
+        };
+      });
+
+      courtsMetaStatus.textContent = "Gemmer...";
+      courtsMetaStatus.style.color = "#e5e7eb";
+
+      try {
+        const resp = await fetch("/api/setCourtsMeta", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ courtsMeta: next }),
+        });
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+
+        const data = await resp.json();
+        if (Array.isArray(data.courtsMeta)) {
+          courtsMeta = data.courtsMeta.map(x => ({
+            id: Number(x.id),
+            sponsor: typeof x.sponsor === "string" ? x.sponsor : ""
+          }));
+        } else {
+          courtsMeta = next;
+        }
+
+        // Genopbyg UI der bruger labels (bevarer selects ved at læse adminState igen bagefter)
+        buildCourtsMetaInputs();
+        buildLunarCourtCheckboxes();
+        buildStandardCourtCheckboxes();
+        buildCourtRows();
+        rebuildLunarRoundRows();
+
+        // Genindlæs state så checkboxe/selects bliver sat korrekt igen
+        await loadAdminState(true);
+
+        courtsMetaStatus.textContent = "Gemt";
+        courtsMetaStatus.style.color = "#22c55e";
+      } catch (err) {
+        console.error("Fejl ved saveCourtsMeta:", err);
+        courtsMetaStatus.textContent = "Fejl";
+        courtsMetaStatus.style.color = "#f97373";
+      }
+
+      setTimeout(() => (courtsMetaStatus.textContent = ""), 3000);
+    }
+
+    // Hent adminState fra server
+    async function loadAdminState(skipMetaUpdate = false) {
       try {
         const resp = await fetch("/api/adminState", { cache: "no-store" });
         if (!resp.ok) throw new Error("HTTP " + resp.status);
 
         const data = await resp.json();
 
+        // Meta fra server (hvis findes)
+        if (!skipMetaUpdate && Array.isArray(data.courtsMeta) && data.courtsMeta.length) {
+          courtsMeta = data.courtsMeta.map(x => ({
+            id: Number(x.id),
+            sponsor: typeof x.sponsor === "string" ? x.sponsor : `Bane ${x.id}`
+          }));
+
+          // Byg UI der bruger meta (før vi sætter values på selects/checkboxes)
+          buildCourtsMetaInputs();
+          buildLunarCourtCheckboxes();
+          buildStandardCourtCheckboxes();
+          buildCourtRows();
+        }
+
         const hp = Array.isArray(data.homePlayers) ? data.homePlayers : [];
         const ap = Array.isArray(data.awayPlayers) ? data.awayPlayers : [];
 
-        // Udfyld spillerfelter
         for (let i = 1; i <= MAX_PLAYERS; i++) {
           const hInput = document.getElementById(`homePlayer-${i}`);
           const aInput = document.getElementById(`awayPlayer-${i}`);
@@ -788,7 +911,7 @@
           if (aInput) aInput.value = ap[i - 1] || "";
         }
 
-        // Udfyld dropdown-valg pr. bane (standard)
+        // Standard bane assignments
         if (Array.isArray(data.courts)) {
           data.courts.forEach(c => {
             const id = c.courtId;
@@ -804,7 +927,7 @@
           });
         }
 
-        // --- LUNAR: enabled + valgte baner ---
+        // --- LUNAR ---
         if (typeof data.lunarEnabled === "boolean") {
           lunarEnabledCheckbox.checked = data.lunarEnabled;
           handleLunarToggleChange();
@@ -819,15 +942,12 @@
           });
         }
 
-        // Byg rækker til LUNAR-runder baseret på valgte baner
         rebuildLunarRoundRows();
 
-        // SUPER MATCH-TIE bane (vælg i select)
         if (typeof data.lunarSuperMatchCourtId === "number" && lunarSuperMatchSelect) {
           lunarSuperMatchSelect.value = String(data.lunarSuperMatchCourtId);
         }
 
-        // Udfyld LUNAR runde 1/2 fra server
         if (Array.isArray(data.lunarRound1)) {
           data.lunarRound1.forEach(c => {
             const id = c.courtId;
@@ -858,7 +978,6 @@
           });
         }
 
-        // SUPER MATCH-TIE spillere
         if (data.lunarSuperMatchPlayers) {
           const p = data.lunarSuperMatchPlayers;
           if (superHomeIdx1 && p.homeIdx1 != null) superHomeIdx1.value = String(p.homeIdx1);
@@ -867,9 +986,8 @@
           if (superAwayIdx2 && p.awayIdx2 != null) superAwayIdx2.value = String(p.awayIdx2);
         }
 
-        // --- NYT: Standard visning (baner til index.html når LUNAR ikke er aktivt) ---
+        // --- Standard visning ---
         const standardBoxes = document.querySelectorAll(".standard-court-checkbox");
-
         if (Array.isArray(data.standardVisibleCourts)) {
           const ids = data.standardVisibleCourts.map(Number);
           standardBoxes.forEach(box => {
@@ -877,9 +995,9 @@
             box.checked = ids.includes(id);
           });
         } else {
-          // fallback: default til alle baner hvis state ikke findes endnu
           standardBoxes.forEach(box => (box.checked = true));
         }
+
       } catch (err) {
         console.error("Fejl ved loadAdminState:", err);
       }
@@ -914,9 +1032,7 @@
         rosterStatus.style.color = "#f97373";
       }
 
-      setTimeout(() => {
-        rosterStatus.textContent = "";
-      }, 3000);
+      setTimeout(() => (rosterStatus.textContent = ""), 3000);
     }
 
     async function saveCourt(courtId) {
@@ -961,7 +1077,6 @@
       }, 3000);
     }
 
-    // Gem LUNAR-opsætning (on/off + hvilke baner + super-bane)
     async function saveLunarConfig() {
       const enabled = lunarEnabledCheckbox.checked;
       const courtIds = getSelectedLunarCourtIds();
@@ -993,12 +1108,9 @@
         lunarConfigStatus.style.color = "#f97373";
       }
 
-      setTimeout(() => {
-        lunarConfigStatus.textContent = "";
-      }, 3000);
+      setTimeout(() => (lunarConfigStatus.textContent = ""), 3000);
     }
 
-    // Gem spillerpar for én bane og én runde i LUNAR-formatet
     async function saveLunarCourt(courtId, round) {
       const statusSpan = document.getElementById(`lunar-status-r${round}-${courtId}`);
       const h1 = document.getElementById(`lunar-r${round}-homeIdx1-${courtId}`);
@@ -1042,7 +1154,6 @@
       }, 3000);
     }
 
-    // Gem spillere til SUPER MATCH-TIE (7. kamp)
     async function saveLunarSuperPlayers() {
       if (!superHomeIdx1 || !superHomeIdx2 || !superAwayIdx1 || !superAwayIdx2) return;
 
@@ -1072,12 +1183,9 @@
         lunarSuperStatus.style.color = "#f97373";
       }
 
-      setTimeout(() => {
-        lunarSuperStatus.textContent = "";
-      }, 3000);
+      setTimeout(() => (lunarSuperStatus.textContent = ""), 3000);
     }
 
-    // NYT: Gem standard-baner der skal vises på index.html (når LUNAR ikke er aktivt)
     async function saveStandardVisibleCourts() {
       if (!standardCourtsStatus) return;
 
@@ -1102,16 +1210,17 @@
         standardCourtsStatus.style.color = "#f97373";
       }
 
-      setTimeout(() => {
-        standardCourtsStatus.textContent = "";
-      }, 3000);
+      setTimeout(() => (standardCourtsStatus.textContent = ""), 3000);
     }
 
     // Init
     buildRosterInputs();
+
+    // Byg UI med defaults først
+    buildCourtsMetaInputs();
     buildCourtRows();
     buildLunarCourtCheckboxes();
-    buildStandardCourtCheckboxes(); // NYT
+    buildStandardCourtCheckboxes();
     handleLunarToggleChange();
 
     // Udfyld select-options for SUPER MATCH-TIE spiller-valg
@@ -1119,6 +1228,7 @@
       fillSelectOptionsForElement(sel);
     });
 
+    // Load server-state (inkl. courtsMeta)
     loadAdminState();
   </script>
 </body>
