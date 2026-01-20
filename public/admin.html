@@ -384,7 +384,7 @@
       <!-- SUPER MATCH-TIE (7. kamp) spillere -->
       <div class="lunar-round-title" style="margin-top:10px;">SUPER MATCH-TIE (7. kamp)</div>
       <div class="small">
-        Vælg spillere til 7. kamp. Spillere vælges fra listerne øverst.  
+        Vælg spillere til 7. kamp. Spillere vælges fra listerne øverst.
         (Bruges kun hvis holdkampen står 3–3.)
       </div>
       <table>
@@ -422,7 +422,7 @@
 
       <div class="lunar-note">
         Tip: Du kan frit lave nye konstellationer i runde 2 når runde 1 er færdigspillet, og definere
-        en særskilt opstilling til SUPER MATCH-TIE.  
+        en særskilt opstilling til SUPER MATCH-TIE.
         (Index-visningen bruger disse data til at vise navne og samlet stilling.)
       </div>
     </section>
@@ -434,6 +434,19 @@
         Standardopsætning pr. bane, når LUNAR-format ikke bruges. Vælg hvilke spillere (nummer fra
         listen ovenfor) der spiller på hver bane.
       </div>
+
+      <!-- NYT: valg af hvilke standard-baner der skal vises på index.html -->
+      <div class="small" style="margin-top:8px;">
+        Vælg hvilke baner der skal vises på scoreboard (index.html), når LUNAR-format ikke er aktivt:
+      </div>
+      <div class="lunar-courts" id="standardCourtsContainer">
+        <!-- Checkboxe for standard-visning indsættes via JS -->
+      </div>
+      <div class="btn-row">
+        <button type="button" onclick="saveStandardVisibleCourts()">Gem visning (standard)</button>
+        <span id="standardCourtsStatus" class="inline-status"></span>
+      </div>
+
       <table>
         <thead>
           <tr>
@@ -480,6 +493,10 @@
     const superAwayIdx1 = document.getElementById("superAwayIdx1");
     const superAwayIdx2 = document.getElementById("superAwayIdx2");
     const lunarSuperStatus = document.getElementById("lunar-super-status");
+
+    // Standard courts visibility refs (NYT)
+    const standardCourtsContainer = document.getElementById("standardCourtsContainer");
+    const standardCourtsStatus = document.getElementById("standardCourtsStatus");
 
     // Hjælper til at udfylde en select med (ingen), 1..MAX_PLAYERS
     function fillSelectOptionsForElement(sel) {
@@ -587,6 +604,33 @@
         if (box.checked) {
           ids.push(Number(box.getAttribute("data-court-id")));
         }
+      });
+      return ids;
+    }
+
+    // NYT: Byg checkboxe til standard visning (baner til index.html)
+    function buildStandardCourtCheckboxes() {
+      if (!standardCourtsContainer) return;
+      standardCourtsContainer.innerHTML = "";
+
+      courtsMeta.forEach(court => {
+        const label = document.createElement("label");
+        label.className = "lunar-court-item";
+        label.innerHTML = `
+          <input type="checkbox"
+                 class="standard-court-checkbox"
+                 data-court-id="${court.id}" />
+          <span>${court.sponsor}</span>
+        `;
+        standardCourtsContainer.appendChild(label);
+      });
+    }
+
+    function getSelectedStandardCourtIds() {
+      const boxes = document.querySelectorAll(".standard-court-checkbox");
+      const ids = [];
+      boxes.forEach(box => {
+        if (box.checked) ids.push(Number(box.getAttribute("data-court-id")));
       });
       return ids;
     }
@@ -725,7 +769,7 @@
       });
     }
 
-    // Hent adminState fra server (spillere + bane-assignments + LUNAR)
+    // Hent adminState fra server (spillere + bane-assignments + LUNAR + standard visning)
     async function loadAdminState() {
       try {
         const resp = await fetch("/api/adminState", { cache: "no-store" });
@@ -821,6 +865,20 @@
           if (superHomeIdx2 && p.homeIdx2 != null) superHomeIdx2.value = String(p.homeIdx2);
           if (superAwayIdx1 && p.awayIdx1 != null) superAwayIdx1.value = String(p.awayIdx1);
           if (superAwayIdx2 && p.awayIdx2 != null) superAwayIdx2.value = String(p.awayIdx2);
+        }
+
+        // --- NYT: Standard visning (baner til index.html når LUNAR ikke er aktivt) ---
+        const standardBoxes = document.querySelectorAll(".standard-court-checkbox");
+
+        if (Array.isArray(data.standardVisibleCourts)) {
+          const ids = data.standardVisibleCourts.map(Number);
+          standardBoxes.forEach(box => {
+            const id = Number(box.getAttribute("data-court-id"));
+            box.checked = ids.includes(id);
+          });
+        } else {
+          // fallback: default til alle baner hvis state ikke findes endnu
+          standardBoxes.forEach(box => (box.checked = true));
         }
       } catch (err) {
         console.error("Fejl ved loadAdminState:", err);
@@ -1019,10 +1077,41 @@
       }, 3000);
     }
 
+    // NYT: Gem standard-baner der skal vises på index.html (når LUNAR ikke er aktivt)
+    async function saveStandardVisibleCourts() {
+      if (!standardCourtsStatus) return;
+
+      const courtIds = getSelectedStandardCourtIds();
+
+      standardCourtsStatus.textContent = "Gemmer...";
+      standardCourtsStatus.style.color = "#e5e7eb";
+
+      try {
+        const resp = await fetch("/api/setStandardVisibleCourts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ standardVisibleCourts: courtIds }),
+        });
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+
+        standardCourtsStatus.textContent = "Gemt";
+        standardCourtsStatus.style.color = "#22c55e";
+      } catch (err) {
+        console.error("Fejl ved saveStandardVisibleCourts:", err);
+        standardCourtsStatus.textContent = "Fejl";
+        standardCourtsStatus.style.color = "#f97373";
+      }
+
+      setTimeout(() => {
+        standardCourtsStatus.textContent = "";
+      }, 3000);
+    }
+
     // Init
     buildRosterInputs();
     buildCourtRows();
     buildLunarCourtCheckboxes();
+    buildStandardCourtCheckboxes(); // NYT
     handleLunarToggleChange();
 
     // Udfyld select-options for SUPER MATCH-TIE spiller-valg
