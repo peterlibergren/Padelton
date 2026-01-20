@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const fs = require("fs");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -8,13 +9,60 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(cors());
 
+// =====================
+// PERSISTENS (state.json)
+// =====================
+const DATA_DIR = path.join(__dirname, "data");
+const STATE_FILE = path.join(DATA_DIR, "state.json");
+
+function ensureDataDir() {
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  } catch (e) {
+    console.warn("[STATE] Could not create data dir:", e);
+  }
+}
+
+function safeReadJSON(filepath) {
+  try {
+    if (!fs.existsSync(filepath)) return null;
+    const raw = fs.readFileSync(filepath, "utf8");
+    return JSON.parse(raw);
+  } catch (e) {
+    console.warn("[STATE] Could not read JSON:", e);
+    return null;
+  }
+}
+
+function safeWriteJSON(filepath, obj) {
+  try {
+    ensureDataDir();
+    const tmp = filepath + ".tmp";
+    fs.writeFileSync(tmp, JSON.stringify(obj, null, 2), "utf8");
+    fs.renameSync(tmp, filepath);
+  } catch (e) {
+    console.warn("[STATE] Could not write JSON:", e);
+  }
+}
+
 // ==== SPILLER-LISTER (op til 16 pr. side) ====
 const MAX_PLAYERS = 16;
 let homePlayers = new Array(MAX_PLAYERS).fill("");
 let awayPlayers = new Array(MAX_PLAYERS).fill("");
 
-// ==== STANDARD: hvilke baner skal vises på index.html når LUNAR ikke er aktivt ====
-// Default: alle 5 baner
+// ==== BANENAVNE (meta) ====
+// Default values (kan ændres via admin og gemmes i state.json)
+const DEFAULT_COURTS_META = [
+  { id: 1, sponsor: "Bane 1 – BetaPack" },
+  { id: 2, sponsor: "Bane 2 – Brdr. Thybo" },
+  { id: 3, sponsor: "Bane 3 – Schantz" },
+  { id: 4, sponsor: "Bane 4 – 10-4" },
+  { id: 5, sponsor: "Bane 5 – Slagteren" },
+];
+
+let courtsMeta = [...DEFAULT_COURTS_META];
+
+// ==== STANDARD: hvilke baner vises på index.html når LUNAR ikke er aktivt ====
 let standardVisibleCourts = [1, 2, 3, 4, 5];
 
 // ==== BANESTATE ====
@@ -63,9 +111,9 @@ for (let i = 1; i <= 5; i++) {
     setsStr: "",
 
     // Kampstatus (fra controller/bane-ESP)
-    matchFinished: false,   // true = kampen er slut
-    winner: 0,              // 0 = ingen, 1 = hjemme, 2 = ude
-    mtb3rd: false,          // true = 3. sæt er match-tie til 10
+    matchFinished: false, // true = kampen er slut
+    winner: 0, // 0 = ingen, 1 = hjemme, 2 = ude
+    mtb3rd: false, // true = 3. sæt er match-tie til 10
 
     online: false,
     lastUpdate: 0,
@@ -73,13 +121,12 @@ for (let i = 1; i <= 5; i++) {
 }
 
 // ==== LUNAR-STATE (i RAM) ====
-// Om LUNAR-format er aktivt, hvilke baner der er valgt, og spillerpar for runde 1 og 2
-let lunarEnabled = false;          // true/false
-let lunarCourts = [];              // fx [1,2,3]
-let lunarRound1 = [];              // [{ courtId, homeIdx1, homeIdx2, awayIdx1, awayIdx2 }, ...]
-let lunarRound2 = [];              // samme struktur
+let lunarEnabled = false; // true/false
+let lunarCourts = []; // fx [1,2,3]
+let lunarRound1 = []; // [{ courtId, homeIdx1, homeIdx2, awayIdx1, awayIdx2 }, ...]
+let lunarRound2 = []; // samme struktur
 let lunarSuperMatchCourtId = null; // bane til SUPER MATCH-TIE (7. kamp)
-let lunarSuperMatchPlayers = {     // spiller-indices til 7. kamp
+let lunarSuperMatchPlayers = {
   homeIdx1: null,
   homeIdx2: null,
   awayIdx1: null,
@@ -87,16 +134,136 @@ let lunarSuperMatchPlayers = {     // spiller-indices til 7. kamp
 };
 
 // ==== LUNAR RESULTATER ====
-// Gemmer et "snapshot" for hver færdigspillet LUNAR-kamp
-// round: 1, 2 eller 7 (Super)
-// winner: 1 = hjemme, 2 = ude
-let lunarResults = [];  // [{ round, courtId, homeName, awayName, setsStr, set1Home, ... , winner }]
-
-// Globale LUNAR-stillinger (antal vundne kampe samlet)
+let lunarResults = []; // snapshots
 let lunarHomeWinsTotal = 0;
 let lunarAwayWinsTotal = 0;
 
-// ==== HJÆLPER: lav "Peter / Lars" ud fra indices ====
+// =====================
+// STATE: LOAD/SAVE
+// =====================
+function saveStateToDisk() {
+  const courtsAdminConfig = {};
+  Object.values(courts).forEach((c) => {
+    courtsAdminConfig[c.courtId] = {
+      adminHomeName: c.adminHomeName,
+      adminAwayName: c.adminAwayName,
+      homeIdx1: c.homeIdx1,
+      homeIdx2: c.homeIdx2,
+      awayIdx1: c.awayIdx1,
+      awayIdx2: c.awayIdx2,
+    };
+  });
+
+  safeWriteJSON(STATE_FILE, {
+    homePlayers,
+    awayPlayers,
+    courtsMeta,
+    standardVisibleCourts,
+
+    lunarEnabled,
+    lunarCourts,
+    lunarRound1,
+    lunarRound2,
+    lunarSuperMatchCourtId,
+    lunarSuperMatchPlayers,
+    lunarResults,
+    lunarHomeWinsTotal,
+    lunarAwayWinsTotal,
+
+    courts: courtsAdminConfig,
+  });
+}
+
+function loadStateFromDisk() {
+  const s = safeReadJSON(STATE_FILE);
+  if (!s) return;
+
+  // Players
+  if (Array.isArray(s.homePlayers)) {
+    homePlayers = new Array(MAX_PLAYERS).fill("").map((_, i) =>
+      typeof s.homePlayers[i] === "string" ? s.homePlayers[i] : ""
+    );
+  }
+  if (Array.isArray(s.awayPlayers)) {
+    awayPlayers = new Array(MAX_PLAYERS).fill("").map((_, i) =>
+      typeof s.awayPlayers[i] === "string" ? s.awayPlayers[i] : ""
+    );
+  }
+
+  // courtsMeta
+  if (Array.isArray(s.courtsMeta)) {
+    const cleaned = s.courtsMeta
+      .map((x) => ({
+        id: Number(x?.id),
+        sponsor: typeof x?.sponsor === "string" ? x.sponsor.trim() : "",
+      }))
+      .filter((x) => Number.isFinite(x.id) && x.id >= 1 && x.id <= 5);
+
+    const merged = [];
+    for (let i = 1; i <= 5; i++) {
+      const found = cleaned.find((c) => c.id === i);
+      merged.push(found && found.sponsor ? { id: i, sponsor: found.sponsor } : DEFAULT_COURTS_META[i - 1]);
+    }
+    courtsMeta = merged;
+  }
+
+  // standardVisibleCourts
+  if (Array.isArray(s.standardVisibleCourts)) {
+    standardVisibleCourts = s.standardVisibleCourts
+      .map(Number)
+      .filter((n) => Number.isFinite(n) && n >= 1 && n <= 5);
+    if (standardVisibleCourts.length === 0) standardVisibleCourts = [1, 2, 3, 4, 5];
+  }
+
+  // Lunar config
+  if (typeof s.lunarEnabled === "boolean") lunarEnabled = s.lunarEnabled;
+  if (Array.isArray(s.lunarCourts)) {
+    lunarCourts = s.lunarCourts.map(Number).filter((n) => Number.isFinite(n) && n >= 1 && n <= 5);
+  }
+  if (Array.isArray(s.lunarRound1)) lunarRound1 = s.lunarRound1;
+  if (Array.isArray(s.lunarRound2)) lunarRound2 = s.lunarRound2;
+
+  if (s.lunarSuperMatchCourtId == null) lunarSuperMatchCourtId = null;
+  else {
+    const n = Number(s.lunarSuperMatchCourtId);
+    lunarSuperMatchCourtId = Number.isFinite(n) ? n : null;
+  }
+
+  if (s.lunarSuperMatchPlayers && typeof s.lunarSuperMatchPlayers === "object") {
+    lunarSuperMatchPlayers = {
+      homeIdx1: s.lunarSuperMatchPlayers.homeIdx1 ?? null,
+      homeIdx2: s.lunarSuperMatchPlayers.homeIdx2 ?? null,
+      awayIdx1: s.lunarSuperMatchPlayers.awayIdx1 ?? null,
+      awayIdx2: s.lunarSuperMatchPlayers.awayIdx2 ?? null,
+    };
+  }
+
+  if (Array.isArray(s.lunarResults)) lunarResults = s.lunarResults;
+  if (Number.isFinite(Number(s.lunarHomeWinsTotal))) lunarHomeWinsTotal = Number(s.lunarHomeWinsTotal);
+  if (Number.isFinite(Number(s.lunarAwayWinsTotal))) lunarAwayWinsTotal = Number(s.lunarAwayWinsTotal);
+
+  // Admin config pr court
+  if (s.courts && typeof s.courts === "object") {
+    Object.values(courts).forEach((c) => {
+      const entry = s.courts[c.courtId];
+      if (!entry || typeof entry !== "object") return;
+
+      c.adminHomeName = typeof entry.adminHomeName === "string" ? entry.adminHomeName : null;
+      c.adminAwayName = typeof entry.adminAwayName === "string" ? entry.adminAwayName : null;
+
+      c.homeIdx1 = entry.homeIdx1 ?? null;
+      c.homeIdx2 = entry.homeIdx2 ?? null;
+      c.awayIdx1 = entry.awayIdx1 ?? null;
+      c.awayIdx2 = entry.awayIdx2 ?? null;
+    });
+  }
+
+  console.log("[STATE] Loaded:", STATE_FILE);
+}
+
+// =====================
+// HJÆLPERE
+// =====================
 function buildNameFromIndices(side, idx1, idx2) {
   const list = side === "home" ? homePlayers : awayPlayers;
   const names = [];
@@ -105,9 +272,7 @@ function buildNameFromIndices(side, idx1, idx2) {
   indices.forEach((idx) => {
     if (typeof idx === "number" && idx >= 1 && idx <= MAX_PLAYERS) {
       const n = list[idx - 1];
-      if (n && n.trim().length > 0) {
-        names.push(n.trim());
-      }
+      if (n && n.trim().length > 0) names.push(n.trim());
     }
   });
 
@@ -116,13 +281,8 @@ function buildNameFromIndices(side, idx1, idx2) {
   return names.join(" / ");
 }
 
-// Giver samme "effektive" navne som scoreboardet bruger i /api/courts
 function computeEffectiveNames(c) {
-  const isLunar =
-    lunarEnabled &&
-    Array.isArray(lunarCourts) &&
-    lunarCourts.includes(c.courtId);
-
+  const isLunar = lunarEnabled && Array.isArray(lunarCourts) && lunarCourts.includes(c.courtId);
   const isSuperMatchTie = isLunar && lunarSuperMatchCourtId === c.courtId;
 
   let effHome = c.homeName;
@@ -134,24 +294,17 @@ function computeEffectiveNames(c) {
   let usedAwayIdx2 = c.awayIdx2;
   let lunarRoundUsed = null;
 
-  // LUNAR round 1/2 overrides (samme logik som i /api/courts)
+  // LUNAR overrides (runde 2 prioritet)
   if (isLunar) {
-    let r2 = Array.isArray(lunarRound2)
-      ? lunarRound2.find(e => e.courtId === c.courtId)
-      : null;
-    let r1 = Array.isArray(lunarRound1)
-      ? lunarRound1.find(e => e.courtId === c.courtId)
-      : null;
+    const r2 = Array.isArray(lunarRound2) ? lunarRound2.find((e) => e.courtId === c.courtId) : null;
+    const r1 = Array.isArray(lunarRound1) ? lunarRound1.find((e) => e.courtId === c.courtId) : null;
 
     const hasR2 =
-      r2 &&
-      (r2.homeIdx1 != null || r2.homeIdx2 != null || r2.awayIdx1 != null || r2.awayIdx2 != null);
+      r2 && (r2.homeIdx1 != null || r2.homeIdx2 != null || r2.awayIdx1 != null || r2.awayIdx2 != null);
     const hasR1 =
-      r1 &&
-      (r1.homeIdx1 != null || r1.homeIdx2 != null || r1.awayIdx1 != null || r1.awayIdx2 != null);
+      r1 && (r1.homeIdx1 != null || r1.homeIdx2 != null || r1.awayIdx1 != null || r1.awayIdx2 != null);
 
     const src = hasR2 ? r2 : hasR1 ? r1 : null;
-
     if (src) {
       usedHomeIdx1 = src.homeIdx1 ?? null;
       usedHomeIdx2 = src.homeIdx2 ?? null;
@@ -161,13 +314,10 @@ function computeEffectiveNames(c) {
     }
   }
 
-  // SUPER MATCH-TIE override (spillere til 7. kamp)
+  // SUPER MATCH-TIE override
   if (isLunar && isSuperMatchTie && lunarSuperMatchPlayers) {
     const p = lunarSuperMatchPlayers;
-    const hasAny =
-      p.homeIdx1 != null || p.homeIdx2 != null ||
-      p.awayIdx1 != null || p.awayIdx2 != null;
-
+    const hasAny = p.homeIdx1 != null || p.homeIdx2 != null || p.awayIdx1 != null || p.awayIdx2 != null;
     if (hasAny) {
       usedHomeIdx1 = p.homeIdx1 ?? null;
       usedHomeIdx2 = p.homeIdx2 ?? null;
@@ -176,11 +326,11 @@ function computeEffectiveNames(c) {
     }
   }
 
-  // Admin-navne
+  // Admin navne
   if (c.adminHomeName) effHome = c.adminHomeName;
   if (c.adminAwayName) effAway = c.adminAwayName;
 
-  // Spillerlister → "Peter / Lars"
+  // From roster indices
   const fromHomeRoster = buildNameFromIndices("home", usedHomeIdx1, usedHomeIdx2);
   const fromAwayRoster = buildNameFromIndices("away", usedAwayIdx1, usedAwayIdx2);
 
@@ -202,21 +352,18 @@ function computeEffectiveNames(c) {
 
 function pickPointsStr({ hp, ap, suppliedHomeStr, suppliedAwayStr }) {
   const clean = (v) => (typeof v === "string" ? v.trim() : "");
-
   const hs = clean(suppliedHomeStr);
   const as = clean(suppliedAwayStr);
 
   const fallbackH = Number.isFinite(Number(hp)) ? String(Number(hp)) : "0";
   const fallbackA = Number.isFinite(Number(ap)) ? String(Number(ap)) : "0";
 
-  return {
-    home: hs !== "" ? hs : fallbackH,
-    away: as !== "" ? as : fallbackA,
-  };
+  return { home: hs !== "" ? hs : fallbackH, away: as !== "" ? as : fallbackA };
 }
 
-// ==== CONTROLLER → CLOUD: scoreopdatering ====
-// POST /api/updateScore
+// =====================
+// API: updateScore (controller/ESP)
+// =====================
 app.post("/api/updateScore", (req, res) => {
   const {
     courtId,
@@ -247,8 +394,6 @@ app.post("/api/updateScore", (req, res) => {
     mtb3rd,
   } = req.body || {};
 
-  console.log("[updateScore] body =", req.body);
-
   if (!courtId || courtId < 1 || courtId > 5) {
     return res.status(400).json({ error: "Invalid courtId" });
   }
@@ -274,20 +419,19 @@ app.post("/api/updateScore", (req, res) => {
     return def;
   }
 
-  // Navne (råt fra controller/ESP)
+  // Raw names
   if (homeName !== undefined) c.homeName = homeName;
   if (awayName !== undefined) c.awayName = awayName;
 
-  // Score (tal)
+  // Score (numbers)
   if (homePoints !== undefined) c.homePoints = toIntOrDefault(homePoints, c.homePoints ?? 0);
   if (awayPoints !== undefined) c.awayPoints = toIntOrDefault(awayPoints, c.awayPoints ?? 0);
-
   if (homeGames !== undefined) c.homeGames = toIntOrDefault(homeGames, c.homeGames ?? 0);
   if (awayGames !== undefined) c.awayGames = toIntOrDefault(awayGames, c.awayGames ?? 0);
   if (homeSets !== undefined) c.homeSets = toIntOrDefault(homeSets, c.homeSets ?? 0);
   if (awaySets !== undefined) c.awaySets = toIntOrDefault(awaySets, c.awaySets ?? 0);
 
-  // ✅ PointsStr: hold dem altid i sync (og undgå “låste” values)
+  // pointsStr
   const picked = pickPointsStr({
     hp: c.homePoints,
     ap: c.awayPoints,
@@ -297,7 +441,7 @@ app.post("/api/updateScore", (req, res) => {
   c.homePointsStr = picked.home;
   c.awayPointsStr = picked.away;
 
-  // Set-historik
+  // Set history
   if (set1Home !== undefined) c.set1Home = toIntOrDefault(set1Home, -1);
   if (set1Away !== undefined) c.set1Away = toIntOrDefault(set1Away, -1);
   if (set1LoserTbPoints !== undefined) c.set1LoserTbPoints = toIntOrDefault(set1LoserTbPoints, -1);
@@ -312,12 +456,12 @@ app.post("/api/updateScore", (req, res) => {
     c.setsStr = typeof setsStr === "string" ? setsStr : setsStr != null ? String(setsStr) : "";
   }
 
-  // Kampstatus
+  // Match status
   if (matchFinished !== undefined) c.matchFinished = toBool(matchFinished, false);
   if (winner !== undefined) c.winner = toIntOrDefault(winner, 0);
   if (mtb3rd !== undefined) c.mtb3rd = toBool(mtb3rd, false);
 
-  // Hvis matchFinished men winner mangler → udled fra sets
+  // derive winner if missing
   if (c.matchFinished && (!c.winner || c.winner === 0)) {
     const hs = Number(c.homeSets || 0);
     const as = Number(c.awaySets || 0);
@@ -325,42 +469,27 @@ app.post("/api/updateScore", (req, res) => {
     else if (as > hs) c.winner = 2;
   }
 
-  // ---- LUNAR: din eksisterende logik (uændret) ----
+  // ---- LUNAR snapshot logic (samme som før) ----
   const newFinished = !!c.matchFinished;
   const newWinner = Number(c.winner || 0);
 
-  const isLunar =
-    lunarEnabled &&
-    Array.isArray(lunarCourts) &&
-    lunarCourts.includes(courtId);
+  const isLunar = lunarEnabled && Array.isArray(lunarCourts) && lunarCourts.includes(courtId);
 
   if (isLunar && newFinished) {
     const names = computeEffectiveNames(c);
 
     let round = 1;
-    const hasR2 =
-      Array.isArray(lunarRound2) &&
-      lunarRound2.some(e => e.courtId === courtId);
+    const hasR2 = Array.isArray(lunarRound2) && lunarRound2.some((e) => e.courtId === courtId);
     if (hasR2) round = 2;
 
     let isSuperMatchRound = false;
-    if (
-      lunarSuperMatchCourtId != null &&
-      lunarSuperMatchCourtId === courtId &&
-      lunarSuperMatchPlayers
-    ) {
+    if (lunarSuperMatchCourtId != null && lunarSuperMatchCourtId === courtId && lunarSuperMatchPlayers) {
       const sp = lunarSuperMatchPlayers;
-      const haveSuperIndices =
-        sp.homeIdx1 != null || sp.homeIdx2 != null ||
-        sp.awayIdx1 != null || sp.awayIdx2 != null;
+      const haveSuperIndices = sp.homeIdx1 != null || sp.homeIdx2 != null || sp.awayIdx1 != null || sp.awayIdx2 != null;
 
       if (haveSuperIndices) {
-        const sameHome =
-          names.usedHomeIdx1 === sp.homeIdx1 &&
-          names.usedHomeIdx2 === sp.homeIdx2;
-        const sameAway =
-          names.usedAwayIdx1 === sp.awayIdx1 &&
-          names.usedAwayIdx2 === sp.awayIdx2;
+        const sameHome = names.usedHomeIdx1 === sp.homeIdx1 && names.usedHomeIdx2 === sp.homeIdx2;
+        const sameAway = names.usedAwayIdx1 === sp.awayIdx1 && names.usedAwayIdx2 === sp.awayIdx2;
         if (sameHome && sameAway) isSuperMatchRound = true;
       }
     }
@@ -390,12 +519,12 @@ app.post("/api/updateScore", (req, res) => {
       winner: newWinner,
     };
 
-    const existingIndex = lunarResults.findIndex(
-      r => r.courtId === courtId && r.round === round
-    );
-
+    const existingIndex = lunarResults.findIndex((r) => r.courtId === courtId && r.round === round);
     if (existingIndex >= 0) lunarResults[existingIndex] = snapshot;
     else lunarResults.push(snapshot);
+
+    // Hvis du vil have LUNAR-resultater og totals til at overleve genstart:
+    saveStateToDisk();
   }
 
   c.lastUpdate = Date.now();
@@ -404,8 +533,11 @@ app.post("/api/updateScore", (req, res) => {
   res.json({ status: "ok" });
 });
 
-// ==== (VALGFRI) DIREKTE ADMIN-NAVNE pr. bane ====
-// POST /api/setNames
+// =====================
+// ADMIN endpoints
+// =====================
+
+// POST /api/setNames  (valgfri admin override navne pr bane)
 app.post("/api/setNames", (req, res) => {
   const { courtId, homeName, awayName } = req.body || {};
 
@@ -415,19 +547,10 @@ app.post("/api/setNames", (req, res) => {
 
   const c = courts[courtId];
 
-  if (typeof homeName === "string") {
-    c.adminHomeName = homeName.trim() || null;
-  }
-  if (typeof awayName === "string") {
-    c.adminAwayName = awayName.trim() || null;
-  }
+  if (typeof homeName === "string") c.adminHomeName = homeName.trim() || null;
+  if (typeof awayName === "string") c.adminAwayName = awayName.trim() || null;
 
-  console.log(
-    `[ADMIN NAMES] court ${courtId}:`,
-    c.adminHomeName,
-    "vs",
-    c.adminAwayName
-  );
+  saveStateToDisk();
 
   return res.json({
     status: "ok",
@@ -437,7 +560,6 @@ app.post("/api/setNames", (req, res) => {
   });
 });
 
-// ==== ADMIN — GEM SPILLER-LISTER ====
 // POST /api/setRoster
 app.post("/api/setRoster", (req, res) => {
   const body = req.body || {};
@@ -451,17 +573,11 @@ app.post("/api/setRoster", (req, res) => {
     .fill("")
     .map((_, i) => (typeof ap[i] === "string" ? ap[i].trim() : ""));
 
-  console.log("[ADMIN ROSTER] Hjemme:", homePlayers);
-  console.log("[ADMIN ROSTER] Ude:", awayPlayers);
+  saveStateToDisk();
 
-  return res.json({
-    status: "ok",
-    homePlayers,
-    awayPlayers,
-  });
+  return res.json({ status: "ok", homePlayers, awayPlayers });
 });
 
-// ==== ADMIN — SÆT HVILKE SPILLERE SPILLER PÅ EN BANE (STANDARD) ====
 // POST /api/setCourtPlayers
 app.post("/api/setCourtPlayers", (req, res) => {
   const { courtId, homeIdx1, homeIdx2, awayIdx1, awayIdx2 } = req.body || {};
@@ -485,15 +601,7 @@ app.post("/api/setCourtPlayers", (req, res) => {
   c.awayIdx1 = normIdx(awayIdx1);
   c.awayIdx2 = normIdx(awayIdx2);
 
-  console.log(
-    `[ADMIN COURT PLAYERS] court ${courtId}:`,
-    "Hjemme:",
-    c.homeIdx1,
-    c.homeIdx2,
-    "| Ude:",
-    c.awayIdx1,
-    c.awayIdx2
-  );
+  saveStateToDisk();
 
   return res.json({
     status: "ok",
@@ -505,7 +613,6 @@ app.post("/api/setCourtPlayers", (req, res) => {
   });
 });
 
-// ==== NYT: ADMIN — GEM HVILKE BANER DER SKAL VISES I STANDARD (index.html) ====
 // POST /api/setStandardVisibleCourts
 app.post("/api/setStandardVisibleCourts", (req, res) => {
   const body = req.body || {};
@@ -517,46 +624,68 @@ app.post("/api/setStandardVisibleCourts", (req, res) => {
 
   standardVisibleCourts = arr
     .map(Number)
-    .filter(n => Number.isFinite(n) && n >= 1 && n <= 5);
+    .filter((n) => Number.isFinite(n) && n >= 1 && n <= 5);
 
-  console.log("[ADMIN STANDARD VISIBLE COURTS]:", standardVisibleCourts);
+  if (standardVisibleCourts.length === 0) {
+    // undgå tom visning, fallback til alle
+    standardVisibleCourts = [1, 2, 3, 4, 5];
+  }
 
-  return res.json({
-    status: "ok",
-    standardVisibleCourts,
-  });
+  saveStateToDisk();
+
+  return res.json({ status: "ok", standardVisibleCourts });
 });
 
-// ==== LUNAR — GEM OPSÆTNING (ON/OFF + BANER + SUPER MATCH-TIE) ====
+// POST /api/setCourtsMeta  (NYT: gem banenavne)
+app.post("/api/setCourtsMeta", (req, res) => {
+  const body = req.body || {};
+  const arr = body.courtsMeta;
+
+  if (!Array.isArray(arr)) {
+    return res.status(400).json({ error: "courtsMeta skal være et array" });
+  }
+
+  const cleaned = arr
+    .map((x) => ({
+      id: Number(x?.id),
+      sponsor: typeof x?.sponsor === "string" ? x.sponsor.trim() : "",
+    }))
+    .filter((x) => Number.isFinite(x.id) && x.id >= 1 && x.id <= 5);
+
+  const merged = [];
+  for (let i = 1; i <= 5; i++) {
+    const found = cleaned.find((c) => c.id === i);
+    merged.push(found && found.sponsor ? { id: i, sponsor: found.sponsor } : DEFAULT_COURTS_META[i - 1]);
+  }
+
+  courtsMeta = merged;
+
+  saveStateToDisk();
+
+  return res.json({ status: "ok", courtsMeta });
+});
+
 // POST /api/setLunarConfig
 app.post("/api/setLunarConfig", (req, res) => {
   const body = req.body || {};
-  const {
-    lunarEnabled: enabledFromClient,
-    lunarCourts: courtsFromClient,
-    lunarSuperMatchCourtId: superFromClient,
-  } = body;
+  const { lunarEnabled: enabledFromClient, lunarCourts: courtsFromClient, lunarSuperMatchCourtId: superFromClient } = body;
 
   lunarEnabled = !!enabledFromClient;
 
-  // Hvis LUNAR slås FRA → ryd alt LUNAR-state + stillinger + resultater
+  // Hvis LUNAR slås FRA → nulstil LUNAR-state + resultater/stilling
   if (!lunarEnabled) {
     lunarCourts = [];
     lunarRound1 = [];
     lunarRound2 = [];
     lunarSuperMatchCourtId = null;
-    lunarSuperMatchPlayers = {
-      homeIdx1: null,
-      homeIdx2: null,
-      awayIdx1: null,
-      awayIdx2: null,
-    };
+    lunarSuperMatchPlayers = { homeIdx1: null, homeIdx2: null, awayIdx1: null, awayIdx2: null };
 
     lunarHomeWinsTotal = 0;
     lunarAwayWinsTotal = 0;
     lunarResults = [];
 
-    console.log("[LUNAR CONFIG] disabled + nulstil stilling + resultater");
+    saveStateToDisk();
+
     return res.json({
       status: "ok",
       lunarEnabled,
@@ -568,34 +697,25 @@ app.post("/api/setLunarConfig", (req, res) => {
       lunarHomeWinsTotal,
       lunarAwayWinsTotal,
       lunarResults,
-      standardVisibleCourts, // så admin stadig kan se standard-valg
     });
   }
 
+  // LUNAR courts
   if (Array.isArray(courtsFromClient)) {
-    lunarCourts = courtsFromClient
-      .map(Number)
-      .filter((n) => Number.isFinite(n) && n >= 1 && n <= 5);
+    lunarCourts = courtsFromClient.map(Number).filter((n) => Number.isFinite(n) && n >= 1 && n <= 5);
   } else {
     lunarCourts = [];
   }
 
+  // Super match court must be among lunarCourts
   let superId = null;
   if (superFromClient !== undefined && superFromClient !== null && superFromClient !== "") {
     const n = Number(superFromClient);
-    if (Number.isFinite(n) && n >= 1 && n <= 5 && lunarCourts.includes(n)) {
-      superId = n;
-    }
+    if (Number.isFinite(n) && n >= 1 && n <= 5 && lunarCourts.includes(n)) superId = n;
   }
-
   lunarSuperMatchCourtId = superId;
 
-  console.log("[LUNAR CONFIG] enabled:", lunarEnabled,
-    "courts:", lunarCourts,
-    "superMatchCourt:", lunarSuperMatchCourtId,
-    "total H:", lunarHomeWinsTotal,
-    "total A:", lunarAwayWinsTotal
-  );
+  saveStateToDisk();
 
   return res.json({
     status: "ok",
@@ -608,24 +728,17 @@ app.post("/api/setLunarConfig", (req, res) => {
     lunarHomeWinsTotal,
     lunarAwayWinsTotal,
     lunarResults,
-    standardVisibleCourts,
   });
 });
 
-// ==== LUNAR — GEM SPILLERPAR PR. BANE & RUNDE ====
 // POST /api/setLunarCourtPlayers
 app.post("/api/setLunarCourtPlayers", (req, res) => {
   const { round, courtId, homeIdx1, homeIdx2, awayIdx1, awayIdx2 } = req.body || {};
-
   const r = Number(round);
   const cid = Number(courtId);
 
-  if (r !== 1 && r !== 2) {
-    return res.status(400).json({ error: "round skal være 1 eller 2" });
-  }
-  if (!cid || cid < 1 || cid > 5) {
-    return res.status(400).json({ error: "Invalid courtId" });
-  }
+  if (r !== 1 && r !== 2) return res.status(400).json({ error: "round skal være 1 eller 2" });
+  if (!cid || cid < 1 || cid > 5) return res.status(400).json({ error: "Invalid courtId" });
 
   function normIdx(v) {
     if (v === null || v === undefined || v === "" || v === 0) return null;
@@ -648,15 +761,7 @@ app.post("/api/setLunarCourtPlayers", (req, res) => {
   entry.awayIdx1 = normIdx(awayIdx1);
   entry.awayIdx2 = normIdx(awayIdx2);
 
-  console.log(
-    `[LUNAR ROUND ${r}] court ${cid}:`,
-    "Hjemme:",
-    entry.homeIdx1,
-    entry.homeIdx2,
-    "| Ude:",
-    entry.awayIdx1,
-    entry.awayIdx2
-  );
+  saveStateToDisk();
 
   return res.json({
     status: "ok",
@@ -669,7 +774,6 @@ app.post("/api/setLunarCourtPlayers", (req, res) => {
   });
 });
 
-// ==== LUNAR — GEM SPILLERE TIL SUPER MATCH-TIE (7. kamp) ====
 // POST /api/setLunarSuperMatchPlayers
 app.post("/api/setLunarSuperMatchPlayers", (req, res) => {
   const { homeIdx1, homeIdx2, awayIdx1, awayIdx2 } = req.body || {};
@@ -689,15 +793,11 @@ app.post("/api/setLunarSuperMatchPlayers", (req, res) => {
     awayIdx2: normIdx(awayIdx2),
   };
 
-  console.log("[LUNAR SUPER MATCH PLAYERS]:", lunarSuperMatchPlayers);
+  saveStateToDisk();
 
-  return res.json({
-    status: "ok",
-    ...lunarSuperMatchPlayers,
-  });
+  return res.json({ status: "ok", ...lunarSuperMatchPlayers });
 });
 
-// ==== ADMIN — HENT HELE ADMIN-STATE ====
 // GET /api/adminState
 app.get("/api/adminState", (req, res) => {
   const courtsAdmin = Object.values(courts).map((c) => ({
@@ -713,10 +813,12 @@ app.get("/api/adminState", (req, res) => {
   res.json({
     homePlayers,
     awayPlayers,
-    courts: courtsAdmin,
 
     // NYT
+    courtsMeta,
     standardVisibleCourts,
+
+    courts: courtsAdmin,
 
     lunarEnabled,
     lunarCourts,
@@ -730,8 +832,9 @@ app.get("/api/adminState", (req, res) => {
   });
 });
 
-// ==== SCOREBOARD & VIEW: HENT ALLE BANER ====
-// GET /api/courts
+// =====================
+// SCOREBOARD: GET /api/courts
+// =====================
 app.get("/api/courts", (req, res) => {
   const now = Date.now();
 
@@ -772,9 +875,15 @@ app.get("/api/courts", (req, res) => {
   res.json(list);
 });
 
-// ==== STATISKE FILER (index.html, view.html, admin.html, ...) ====
+// =====================
+// Static files
+// =====================
 app.use(express.static(path.join(__dirname, "public")));
 
+// Load persisted state at startup
+loadStateFromDisk();
+
+// Start server
 app.listen(PORT, () => {
   console.log(`Padelton cloud server lytter på port ${PORT}`);
 });
