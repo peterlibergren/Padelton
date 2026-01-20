@@ -13,6 +13,10 @@ const MAX_PLAYERS = 16;
 let homePlayers = new Array(MAX_PLAYERS).fill("");
 let awayPlayers = new Array(MAX_PLAYERS).fill("");
 
+// ==== STANDARD: hvilke baner skal vises på index.html når LUNAR ikke er aktivt ====
+// Default: alle 5 baner
+let standardVisibleCourts = [1, 2, 3, 4, 5];
+
 // ==== BANESTATE ====
 const courts = {};
 for (let i = 1; i <= 5; i++) {
@@ -199,11 +203,9 @@ function computeEffectiveNames(c) {
 function pickPointsStr({ hp, ap, suppliedHomeStr, suppliedAwayStr }) {
   const clean = (v) => (typeof v === "string" ? v.trim() : "");
 
-  // Hvis ESP sender en “pæn” streng (fx "15", "30", "40", "Ad", "7"), brug den
   const hs = clean(suppliedHomeStr);
   const as = clean(suppliedAwayStr);
 
-  // Fallback: brug tallet som tekst
   const fallbackH = Number.isFinite(Number(hp)) ? String(Number(hp)) : "0";
   const fallbackA = Number.isFinite(Number(ap)) ? String(Number(ap)) : "0";
 
@@ -252,7 +254,6 @@ app.post("/api/updateScore", (req, res) => {
   }
 
   const c = courts[courtId];
-
   const prevFinished = !!c.matchFinished;
 
   function toIntOrDefault(v, def) {
@@ -286,8 +287,6 @@ app.post("/api/updateScore", (req, res) => {
   if (homeSets !== undefined) c.homeSets = toIntOrDefault(homeSets, c.homeSets ?? 0);
   if (awaySets !== undefined) c.awaySets = toIntOrDefault(awaySets, c.awaySets ?? 0);
 
-
-  
   // ✅ PointsStr: hold dem altid i sync (og undgå “låste” values)
   const picked = pickPointsStr({
     hp: c.homePoints,
@@ -327,7 +326,6 @@ app.post("/api/updateScore", (req, res) => {
   }
 
   // ---- LUNAR: din eksisterende logik (uændret) ----
-  // (jeg lader din nuværende LUNAR-blok stå som den er)
   const newFinished = !!c.matchFinished;
   const newWinner = Number(c.winner || 0);
 
@@ -406,7 +404,6 @@ app.post("/api/updateScore", (req, res) => {
   res.json({ status: "ok" });
 });
 
-
 // ==== (VALGFRI) DIREKTE ADMIN-NAVNE pr. bane ====
 // POST /api/setNames
 app.post("/api/setNames", (req, res) => {
@@ -447,7 +444,6 @@ app.post("/api/setRoster", (req, res) => {
   const hp = Array.isArray(body.homePlayers) ? body.homePlayers : [];
   const ap = Array.isArray(body.awayPlayers) ? body.awayPlayers : [];
 
-  // Normaliser til længde 16
   homePlayers = new Array(MAX_PLAYERS)
     .fill("")
     .map((_, i) => (typeof hp[i] === "string" ? hp[i].trim() : ""));
@@ -476,7 +472,6 @@ app.post("/api/setCourtPlayers", (req, res) => {
 
   const c = courts[courtId];
 
-  // Tillad null eller 1..16
   function normIdx(v) {
     if (v === null || v === undefined || v === "" || v === 0) return null;
     const num = Number(v);
@@ -510,6 +505,28 @@ app.post("/api/setCourtPlayers", (req, res) => {
   });
 });
 
+// ==== NYT: ADMIN — GEM HVILKE BANER DER SKAL VISES I STANDARD (index.html) ====
+// POST /api/setStandardVisibleCourts
+app.post("/api/setStandardVisibleCourts", (req, res) => {
+  const body = req.body || {};
+  const arr = body.standardVisibleCourts;
+
+  if (!Array.isArray(arr)) {
+    return res.status(400).json({ error: "standardVisibleCourts skal være et array" });
+  }
+
+  standardVisibleCourts = arr
+    .map(Number)
+    .filter(n => Number.isFinite(n) && n >= 1 && n <= 5);
+
+  console.log("[ADMIN STANDARD VISIBLE COURTS]:", standardVisibleCourts);
+
+  return res.json({
+    status: "ok",
+    standardVisibleCourts,
+  });
+});
+
 // ==== LUNAR — GEM OPSÆTNING (ON/OFF + BANER + SUPER MATCH-TIE) ====
 // POST /api/setLunarConfig
 app.post("/api/setLunarConfig", (req, res) => {
@@ -520,7 +537,6 @@ app.post("/api/setLunarConfig", (req, res) => {
     lunarSuperMatchCourtId: superFromClient,
   } = body;
 
-  // On/off
   lunarEnabled = !!enabledFromClient;
 
   // Hvis LUNAR slås FRA → ryd alt LUNAR-state + stillinger + resultater
@@ -552,12 +568,10 @@ app.post("/api/setLunarConfig", (req, res) => {
       lunarHomeWinsTotal,
       lunarAwayWinsTotal,
       lunarResults,
+      standardVisibleCourts, // så admin stadig kan se standard-valg
     });
   }
 
-  // Hvis vi ER her, er LUNAR slået TIL
-
-  // Valgte LUNAR-baner
   if (Array.isArray(courtsFromClient)) {
     lunarCourts = courtsFromClient
       .map(Number)
@@ -566,7 +580,6 @@ app.post("/api/setLunarConfig", (req, res) => {
     lunarCourts = [];
   }
 
-  // SUPER MATCH-TIE bane (skal være en af LUNAR-banerne)
   let superId = null;
   if (superFromClient !== undefined && superFromClient !== null && superFromClient !== "") {
     const n = Number(superFromClient);
@@ -595,6 +608,7 @@ app.post("/api/setLunarConfig", (req, res) => {
     lunarHomeWinsTotal,
     lunarAwayWinsTotal,
     lunarResults,
+    standardVisibleCourts,
   });
 });
 
@@ -700,6 +714,10 @@ app.get("/api/adminState", (req, res) => {
     homePlayers,
     awayPlayers,
     courts: courtsAdmin,
+
+    // NYT
+    standardVisibleCourts,
+
     lunarEnabled,
     lunarCourts,
     lunarRound1,
@@ -753,7 +771,6 @@ app.get("/api/courts", (req, res) => {
 
   res.json(list);
 });
-
 
 // ==== STATISKE FILER (index.html, view.html, admin.html, ...) ====
 app.use(express.static(path.join(__dirname, "public")));
