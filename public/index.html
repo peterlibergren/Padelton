@@ -2,7 +2,7 @@
 <html lang="da">
 <head>
   <meta charset="UTF-8" />
-  <title>Padel Scoreboard</title>
+  <title>Padelton Admin – Spillere & baner</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     :root {
@@ -17,420 +17,453 @@
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      background: radial-gradient(circle at top, #1d283a 0, #020617 55%);
+      align-items: center;
     }
 
     header {
       text-align: center;
-      padding: 10px 12px;
-      border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+      padding: 10px 8px;
     }
 
     h1 {
       margin: 0;
-      font-size: clamp(1.8rem, 3vw, 2.4rem);
+      font-size: 1.4rem;
       letter-spacing: 0.12em;
       text-transform: uppercase;
     }
 
-    /* Stilling-linje under logoet */
-    .team-standing {
-      margin-top: 6px;
-      font-size: clamp(1.4rem, 3.2vw, 2rem);
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: #e5e7eb;
+    .subtitle {
+      font-size: 0.85rem;
+      color: #9ca3af;
+      margin-top: 4px;
     }
 
-    .team-standing span {
-      display: inline-block;
-      min-width: 1.6em;
-      text-align: center;
+    .top-links {
+      margin-top: 4px;
+      font-size: 0.8rem;
     }
 
-    #standingHome {
-      color: #22c55e;
-      font-weight: 800;
+    .top-links a {
+      color: #38bdf8;
+      text-decoration: none;
+      margin: 0 4px;
     }
 
-    #standingAway {
-      color: #ef4444;
-      font-weight: 800;
-    }
-
-    .team-standing-label {
-      opacity: 0.8;
-      margin-right: 4px;
-    }
-
-    .hidden {
-      display: none !important;
+    .top-links a:hover {
+      text-decoration: underline;
     }
 
     main {
+      width: 100%;
+      max-width: 900px;
+      padding: 8px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    section {
+      background: #020617;
+      border-radius: 12px;
+      border: 1px solid #1f2937;
+      padding: 8px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+    }
+
+    h2 {
+      margin: 0 0 6px;
+      font-size: 1rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .small {
+      font-size: 0.8rem;
+      color: #9ca3af;
+      margin-bottom: 6px;
+    }
+
+    /* spiller-lister */
+    .roster-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+    }
+
+    .roster-column h3 {
+      margin: 0 0 4px;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .player-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 4px;
+      gap: 4px;
+      font-size: 0.8rem;
+    }
+
+    .player-row span {
+      width: 1.8em;
+      text-align: right;
+      opacity: 0.7;
+    }
+
+    input[type="text"] {
       flex: 1;
-      padding: 10px;
+      padding: 3px 6px;
+      border-radius: 6px;
+      border: 1px solid #4b5563;
+      background: #020617;
+      color: #e5e7eb;
+      font-size: 0.85rem;
       box-sizing: border-box;
     }
 
-    .courts-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      max-width: 900px;
-      margin: 0 auto 16px;
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 1px #38bdf8;
     }
 
-    .court-card {
-      background: rgba(15, 23, 42, 0.95);
-      border-radius: 16px;
-      padding: 10px 12px;
-      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5);
-      border: 1px solid rgba(148, 163, 184, 0.3);
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .court-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .court-title {
-      font-size: clamp(1rem, 2.1vw, 1.2rem);
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: #e5e7eb;
-    }
-
-    .court-status-tag {
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      padding: 3px 8px;
+    button {
+      padding: 4px 10px;
       border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.7);
+      border: 1px solid #38bdf8;
+      background: #0f172a;
+      color: #e5e7eb;
+      font-size: 0.8rem;
+      cursor: pointer;
       white-space: nowrap;
     }
 
-    .court-status-tag.error {
-      border-color: #f97373;
-      color: #fecaca;
+    button:hover {
+      background: #0b1120;
     }
 
-    /* Teams-blok */
-    .teams {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
+    .btn-row {
+      margin-top: 6px;
+      text-align: right;
     }
 
-    .team {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
+    /* bane-assignments (standard + LUNAR) */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 6px;
     }
 
-    .team-label {
+    th, td {
+      padding: 5px 6px;
+      font-size: 0.85rem;
+    }
+
+    th {
+      text-align: left;
+      background: #0f172a;
+      border-bottom: 1px solid #1f2937;
+    }
+
+    tr:nth-child(even) td {
+      background: rgba(15, 23, 42, 0.85);
+    }
+
+    tr:nth-child(odd) td {
+      background: rgba(15, 23, 42, 0.6);
+    }
+
+    select {
+      width: 100%;
+      padding: 3px 6px;
+      border-radius: 6px;
+      border: 1px solid #4b5563;
+      background: #020617;
+      color: #e5e7eb;
       font-size: 0.8rem;
-      text-transform: uppercase;
-      letter-spacing: 0.09em;
-      font-weight: 600;
+      box-sizing: border-box;
     }
 
-    .team-home .team-label {
+    select:focus {
+      outline: none;
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 1px #38bdf8;
+    }
+
+    .status-cell {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      min-width: 80px;
+    }
+
+    .status-ok {
       color: #22c55e;
     }
 
-    .team-away .team-label {
-      color: #ef4444;
+    .status-error {
+      color: #f97373;
     }
 
-    /* Vindende hold highlight */
-    .team-winner {
-      box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.9);
-      border-radius: 12px;
+    @media (max-width: 600px) {
+      th:nth-child(5),
+      td:nth-child(5) {
+        display: none; /* skjul status-kolonne på meget smal mobil */
+      }
     }
 
-    /* 5-kolonne layout: Navn | Sæt1 | Sæt2 | Point | Partier */
-    .score-row {
-      display: grid;
-      grid-template-columns: minmax(0, 3fr) repeat(4, minmax(0, 1fr));
-      gap: 4px;
-      align-items: stretch;
-      font-size: clamp(1.2rem, 3.2vw, 1.6rem);
-    }
-
-    .score-cell {
-      padding: 6px 8px;
-      border-radius: 8px;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(148, 163, 184, 0.5);
+    /* LUNAR-format sektioner */
+    .lunar-toggle-row {
       display: flex;
       align-items: center;
-      justify-content: center;
-      text-align: center;
-    }
-
-    .score-cell-name {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: flex-start;
-      text-align: left;
-      overflow: hidden;
-    }
-
-    .player-name,
-    .player-sub {
-      font-size: clamp(1rem, 2.2vw, 1.1rem);
-      line-height: 1.2;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      overflow: hidden;
-      color: #e5e7eb;
-      text-align: left;
-    }
-
-    .player-sub {
-      opacity: 0.9;
-    }
-
-    .score-set {
-      font-weight: 600;
-      background: rgba(15, 23, 42, 0.9);
-    }
-
-    .set-winner {
-      background: rgba(75, 85, 99, 0.95);
-      border-color: rgba(156, 163, 175, 0.95);
-      color: #f9fafb;
-    }
-
-    .score-points {
-      background: #facc15;
-      color: #111827;
-      font-weight: 700;
-      font-size: 1.2em;
-    }
-
-    .score-games {
-      font-weight: 700;
-      background: rgba(30, 64, 175, 0.9);
-      border-color: rgba(129, 140, 248, 0.8);
-    }
-
-    .court-footer {
-      display: flex;
-      justify-content: flex-end;
-      align-items: center;
-      font-size: 0.72rem;
-      color: #cbd5f5;
-      opacity: 0.85;
-      flex-wrap: wrap;
-      gap: 4px;
-      border-top: 1px dashed rgba(148, 163, 184, 0.4);
-      padding-top: 4px;
-      margin-top: 2px;
-    }
-
-    .sets-summary,
-    .match-format {
-      margin-left: 8px;
-      opacity: 0.85;
-      font-size: 0.7rem;
-      white-space: nowrap;
-    }
-
-    .info-card {
-      max-width: 900px;
-      margin: 0 auto 24px;
-      font-size: 0.8rem;
-      color: #9ca3af;
-      text-align: center;
-      opacity: 0.85;
-    }
-
-    .lunar-badge,
-    .super-badge {
-      display: inline-block;
-      margin-left: 6px;
-      padding: 2px 6px;
-      border-radius: 999px;
-      font-size: 0.65rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    .lunar-badge {
-      background: rgba(56, 189, 248, 0.12);
-      border: 1px solid rgba(56, 189, 248, 0.6);
-      color: #e0f2fe;
-    }
-
-    .super-badge {
-      background: rgba(234, 179, 8, 0.18);
-      border: 1px solid rgba(234, 179, 8, 0.8);
-      color: #fef9c3;
-    }
-
-    /* --- LUNAR SLUTSKÆRM --- */
-
-    .lunar-summary {
-      max-width: 1400px;              /* bredere container */
-      width: 95vw;
-      margin: 16px auto 24px;
-      padding: 16px 14px 18px;
-      border-radius: 18px;
-      background: rgba(15, 23, 42, 0.97);
-      border: 1px solid rgba(148, 163, 184, 0.7);
-      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.7);
-    }
-
-    .lunar-summary-title {
-      margin: 0 0 10px;
-      font-size: clamp(1.6rem, 3vw, 2rem);
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      text-align: center;
-    }
-
-    .lunar-summary-subtitle {
-      margin: 0 0 14px;
-      font-size: 0.9rem;
-      text-align: center;
-      color: #9ca3af;
-      opacity: 0.9;
-    }
-
-    .summary-section {
-      margin: 20px auto 8px;
-      width: 100%;
-    }
-
-    .summary-round-title {
-      font-size: 1.2rem;
-      font-weight: 600;
+      gap: 8px;
+      font-size: 0.85rem;
       margin-bottom: 8px;
-      text-align: left;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
     }
 
-    .summary-table {
-      width: 100%;
-      border-collapse: collapse;
-      table-layout: auto; /* lad browseren fordele bredden pænt */
-    }
-
-    .summary-table th,
-    .summary-table td {
-      padding: 8px 6px;
-      border-bottom: 1px solid #4b5563;
-      font-size: 0.95rem;
-    }
-
-    .summary-header-row th {
-      background: #111827;
-      border-bottom: 2px solid #6b7280;
-      font-weight: 600;
-      opacity: 0.95;
-      text-align: center;
-      white-space: nowrap;
-    }
-
-    /* kolonnejusteringer */
-    .summary-table th:nth-child(1),
-    .summary-table td:nth-child(1) {
-      text-align: left;
-      width: 10%;    /* Bane/Kamp */
-    }
-
-    .summary-table th:nth-child(2),
-    .summary-table td:nth-child(2),
-    .summary-table th:nth-child(3),
-    .summary-table td:nth-child(3) {
-      text-align: left;
-      width: 25%;    /* Hjemme / Ude */
-    }
-
-    .summary-table th:nth-child(4),
-    .summary-table td:nth-child(4),
-    .summary-table th:nth-child(5),
-    .summary-table td:nth-child(5),
-    .summary-table th:nth-child(6),
-    .summary-table td:nth-child(6),
-    .summary-table th:nth-child(7),
-    .summary-table td:nth-child(7) {
-      text-align: center;
-      width: 10%;    /* Sæt og vinder */
-    }
-
-    .summary-table tbody tr:nth-child(odd) {
-      background: rgba(15, 23, 42, 0.9);
-    }
-
-    .summary-table tbody tr:nth-child(even) {
-      background: rgba(15, 23, 42, 0.7);
-    }
-
-    .summary-player-main {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .summary-player-sub {
+    .lunar-courts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
       font-size: 0.8rem;
-      opacity: 0.85;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      margin-bottom: 6px;
     }
 
+    .lunar-court-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #020617;
+      border: 1px solid #4b5563;
+    }
+
+    .lunar-rounds-header {
+      font-size: 0.8rem;
+      color: #9ca3af;
+      margin-bottom: 4px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .lunar-round-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-top: 4px;
+      margin-bottom: 2px;
+    }
+
+    .lunar-note {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      margin-top: 4px;
+    }
+
+    .inline-status {
+      margin-left: 8px;
+      font-size: 0.8rem;
+    }
   </style>
 </head>
 <body>
   <header>
-    <h1>PADELTON</h1>
-    <div id="teamStanding" class="team-standing hidden">
-      <span class="team-standing-label">Stilling:</span>
-      <span id="standingHome">0</span>
-      <span>-</span>
-      <span id="standingAway">0</span>
+    <h1>PADELTON ADMIN</h1>
+    <div class="subtitle">Spillere & baner</div>
+    <div class="top-links">
+      <a href="/view.html" target="_blank">Åbn public view</a> •
+      <a href="/" target="_blank">Åbn hoved-scoreboard</a>
     </div>
   </header>
 
   <main>
-    <section class="courts-list" id="courtsList"></section>
-
-    <!-- LUNAR slutskærm -->
-    <section id="lunarSummary" class="lunar-summary hidden">
-      <h2 class="lunar-summary-title">LUNAR – Slutresultat</h2>
-      <p class="lunar-summary-subtitle">
-        Resultater fra LUNAR runde 1, runde 2 og evt. 7. kamp.
-      </p>
-      <div id="lunarSummaryContent"></div>
+    <!-- SPILLERLISTER -->
+    <section>
+      <h2>Spillerliste</h2>
+      <div class="small">
+        Udfyld op til 16 spillere for hjemme og ude. Brug numrene til at tildele spillere til banerne
+        (standard eller LUNAR-format).
+      </div>
+      <div class="roster-grid">
+        <div class="roster-column">
+          <h3>Hjemme</h3>
+          <div id="homeRoster"></div>
+        </div>
+        <div class="roster-column">
+          <h3>Ude</h3>
+          <div id="awayRoster"></div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button type="button" onclick="saveRoster()">Gem spillerliste</button>
+        <span id="rosterStatus" class="inline-status"></span>
+      </div>
     </section>
 
-    <div class="info-card">
-      Live scoreboard • Opdateres automatisk hvert sekund
-    </div>
+    <!-- LUNAR-FORMAT - KONFIGURATION -->
+    <section>
+      <h2>LUNAR-format – Holdkamp (2 x 3 kampe)</h2>
+      <div class="lunar-toggle-row">
+        <label>
+          <input type="checkbox" id="lunarEnabled" />
+          Aktivér LUNAR-format (2 runder á 3 samtidige kampe)
+        </label>
+        <span class="inline-status" id="lunarConfigStatus"></span>
+      </div>
+      <div class="small">
+        Når LUNAR-format er aktivt, bruges kun de valgte 3 baner på public view, og der spilles i to runder
+        á 3 kampe. Hvis stillingen efter 6 kampe er 3–3, kan der spilles en 7. kamp (SUPER MATCH-TIE).
+      </div>
+
+      <div class="lunar-courts" id="lunarCourtsContainer">
+        <!-- Checkboxe for baner indsættes via JS -->
+      </div>
+
+      <div class="small" style="margin-top:4px;">
+        SUPER MATCH-TIE (7. kamp) bane:
+        <select id="lunarSuperMatchSelect">
+          <option value="">(ingen)</option>
+          <!-- udfyldes via JS med de valgte LUNAR-baner -->
+        </select>
+      </div>
+
+      <div class="btn-row">
+        <button type="button" onclick="saveLunarConfig()">Gem LUNAR-opsætning</button>
+      </div>
+
+      <div class="lunar-note">
+        Vælg præcis 3 baner til LUNAR-formatet. Du kan sammensætte spillerpar for runde 1 og 2 nedenfor,
+        og dedikerede spillere til 7. kamp.
+      </div>
+    </section>
+
+    <!-- LUNAR-FORMAT - RUNDER & SPILLERPAR -->
+    <section id="lunarRoundsSection" class="hidden">
+      <h2>LUNAR – Runder & spillerpar</h2>
+      <div class="lunar-rounds-header">
+        Vælg hvilke spillere (nummer fra listerne ovenfor) der spiller på de valgte baner i hhv. 1. og 2. runde.
+      </div>
+
+      <!-- Runde 1 -->
+      <div class="lunar-round-title">Runde 1 (første 3 kampe)</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Bane</th>
+            <th>Hjemme-par (2 spillere)</th>
+            <th>Ude-par (2 spillere)</th>
+            <th>Gem</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="lunarRound1Body">
+          <!-- Række pr. valgt bane via JS -->
+        </tbody>
+      </table>
+
+      <!-- Runde 2 -->
+      <div class="lunar-round-title" style="margin-top:10px;">Runde 2 (sidste 3 kampe)</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Bane</th>
+            <th>Hjemme-par (2 spillere)</th>
+            <th>Ude-par (2 spillere)</th>
+            <th>Gem</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="lunarRound2Body">
+          <!-- Række pr. valgt bane via JS -->
+        </tbody>
+      </table>
+
+      <!-- SUPER MATCH-TIE (7. kamp) spillere -->
+      <div class="lunar-round-title" style="margin-top:10px;">SUPER MATCH-TIE (7. kamp)</div>
+      <div class="small">
+        Vælg spillere til 7. kamp. Spillere vælges fra listerne øverst.
+        (Bruges kun hvis holdkampen står 3–3.)
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Hjemme-par (2 spillere)</th>
+            <th>Ude-par (2 spillere)</th>
+            <th>Gem</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div style="display:flex; gap:4px;">
+                <select id="superHomeIdx1"></select>
+                <select id="superHomeIdx2"></select>
+              </div>
+            </td>
+            <td>
+              <div style="display:flex; gap:4px;">
+                <select id="superAwayIdx1"></select>
+                <select id="superAwayIdx2"></select>
+              </div>
+            </td>
+            <td>
+              <button type="button" onclick="saveLunarSuperPlayers()">Gem 7. kamp</button>
+            </td>
+            <td class="status-cell">
+              <span id="lunar-super-status"></span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="lunar-note">
+        Tip: Du kan frit lave nye konstellationer i runde 2 når runde 1 er færdigspillet, og definere
+        en særskilt opstilling til SUPER MATCH-TIE.
+        (Index-visningen bruger disse data til at vise navne og samlet stilling.)
+      </div>
+    </section>
+
+    <!-- BANE-ASSIGNMENTS (STANDARD) -->
+    <section>
+      <h2>Baner & spillerpar (standard)</h2>
+      <div class="small">
+        Standardopsætning pr. bane, når LUNAR-format ikke bruges. Vælg hvilke spillere (nummer fra
+        listen ovenfor) der spiller på hver bane.
+      </div>
+
+      <!-- NYT: valg af hvilke standard-baner der skal vises på index.html -->
+      <div class="small" style="margin-top:8px;">
+        Vælg hvilke baner der skal vises på scoreboard (index.html), når LUNAR-format ikke er aktivt:
+      </div>
+      <div class="lunar-courts" id="standardCourtsContainer">
+        <!-- Checkboxe for standard-visning indsættes via JS -->
+      </div>
+      <div class="btn-row">
+        <button type="button" onclick="saveStandardVisibleCourts()">Gem visning (standard)</button>
+        <span id="standardCourtsStatus" class="inline-status"></span>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Bane</th>
+            <th>Hjemme-par (2 spillere)</th>
+            <th>Ude-par (2 spillere)</th>
+            <th>Gem</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="courtsBody"></tbody>
+      </table>
+    </section>
   </main>
 
   <script>
-    const BASE_URL = "";
-
-    // Tjek om vi skal tvinge slutskærm via URL: ?summary=1
-const urlParams = new URLSearchParams(window.location.search);
-const forceSummary = urlParams.get("summary") === "1";
-
-    const courts = [
+    const courtsMeta = [
       { id: 1, sponsor: "Bane 1 – BetaPack" },
       { id: 2, sponsor: "Bane 2 – Brdr. Thybo" },
       { id: 3, sponsor: "Bane 3 – Schantz" },
@@ -438,812 +471,655 @@ const forceSummary = urlParams.get("summary") === "1";
       { id: 5, sponsor: "Bane 5 – Slagteren" },
     ];
 
-    const list = document.getElementById("courtsList");
-    
-    // Gem sidste state og låst slutscore pr. bane
-    const lastStates = {};
-    const lockedScore = {};
-    
-    // Opret kort DOM for hver bane
-    courts.forEach(court => {
-      const card = document.createElement("article");
-      card.className = "court-card";
-      card.id = `court-${court.id}`;
+    const MAX_PLAYERS = 16;
 
-      card.innerHTML = `
-        <div class="court-header">
-          <div class="court-title">
-            ${court.sponsor}
-            <span class="lunar-badge hidden" id="lunarBadge-${court.id}">LUNAR</span>
-            <span class="super-badge hidden" id="superBadge-${court.id}">SUPER MATCH-TIE</span>
-          </div>
-          <span class="court-status-tag" id="status-${court.id}">Opdaterer…</span>
-        </div>
+    const homeRosterDiv = document.getElementById("homeRoster");
+    const awayRosterDiv = document.getElementById("awayRoster");
+    const courtsBody = document.getElementById("courtsBody");
+    const rosterStatus = document.getElementById("rosterStatus");
 
-        <div class="teams">
-          <!-- Hjemmehold -->
-          <div class="team team-home">
-            <div class="team-label">Hjemme</div>
-            <div class="score-row">
-              <div class="score-cell score-cell-name">
-                <span class="player-name" id="homeName1-${court.id}">Hjemme 1</span>
-                <span class="player-sub"  id="homeName2-${court.id}"></span>
-              </div>
-              <div class="score-cell score-set" id="homeSet1-${court.id}">–</div>
-              <div class="score-cell score-set" id="homeSet2-${court.id}">–</div>
-              <div class="score-cell score-points" id="homePoints-${court.id}">–</div>
-              <div class="score-cell score-games"  id="homeGames-${court.id}">–</div>
-            </div>
-          </div>
+    // LUNAR refs
+    const lunarEnabledCheckbox = document.getElementById("lunarEnabled");
+    const lunarCourtsContainer = document.getElementById("lunarCourtsContainer");
+    const lunarConfigStatus = document.getElementById("lunarConfigStatus");
+    const lunarRoundsSection = document.getElementById("lunarRoundsSection");
+    const lunarRound1Body = document.getElementById("lunarRound1Body");
+    const lunarRound2Body = document.getElementById("lunarRound2Body");
+    const lunarSuperMatchSelect = document.getElementById("lunarSuperMatchSelect");
 
-          <!-- Udehold -->
-          <div class="team team-away">
-            <div class="team-label">Ude</div>
-            <div class="score-row">
-              <div class="score-cell score-cell-name">
-                <span class="player-name" id="awayName1-${court.id}">Ude 1</span>
-                <span class="player-sub"  id="awayName2-${court.id}"></span>
-              </div>
-              <div class="score-cell score-set" id="awaySet1-${court.id}">–</div>
-              <div class="score-cell score-set" id="awaySet2-${court.id}">–</div>
-              <div class="score-cell score-points" id="awayPoints-${court.id}">–</div>
-              <div class="score-cell score-games"  id="awayGames-${court.id}">–</div>
-            </div>
-          </div>
-        </div>
+    // SUPER MATCH-TIE spiller-selects
+    const superHomeIdx1 = document.getElementById("superHomeIdx1");
+    const superHomeIdx2 = document.getElementById("superHomeIdx2");
+    const superAwayIdx1 = document.getElementById("superAwayIdx1");
+    const superAwayIdx2 = document.getElementById("superAwayIdx2");
+    const lunarSuperStatus = document.getElementById("lunar-super-status");
 
-        <div class="court-footer">
-          <span>Sidst opdateret: <span id="updated-${court.id}">–</span></span>
-          <span class="sets-summary" id="setsSummary-${court.id}"></span>
-          <span class="match-format" id="format-${court.id}"></span>
-        </div>
-      `;
+    // Standard courts visibility refs (NYT)
+    const standardCourtsContainer = document.getElementById("standardCourtsContainer");
+    const standardCourtsStatus = document.getElementById("standardCourtsStatus");
 
-      list.appendChild(card);
-    });
+    // Hjælper til at udfylde en select med (ingen), 1..MAX_PLAYERS
+    function fillSelectOptionsForElement(sel) {
+      if (!sel) return;
+      sel.innerHTML = "";
 
-    // Parser en samlet set-streng, fx "6-4,5-7,7-6(4)"
-// og returnerer et array med op til 3 objekter:
-// [{ home: "6", away: "4" }, { home: "5", away: "7" }, { home: "7", away: "6(4)" }]
+      const optEmpty = document.createElement("option");
+      optEmpty.value = "";
+      optEmpty.textContent = "(ingen)";
+      sel.appendChild(optEmpty);
 
-    
-    // Hjælper: byg sætscore-strenge (fx "7(4)" for taber i TB)
-    function buildSetStrings(c, setIndex) {
-      const homeKey = setIndex === 1 ? "set1Home" : "set2Home";
-      const awayKey = setIndex === 1 ? "set1Away" : "set2Away";
-      const tbKey   = setIndex === 1 ? "set1LoserTbPoints" : "set2LoserTbPoints";
-      const lhKey   = setIndex === 1 ? "set1LoserIsHome"   : "set2LoserIsHome";
-
-      const h = c[homeKey];
-      const a = c[awayKey];
-
-      if (h == null || a == null || h < 0 || a < 0) {
-        return { home: "–", away: "–" };
-      }
-
-      const tb = c[tbKey];
-      const lIsHome = !!c[lhKey];
-
-      if (tb == null || tb < 0) {
-        return { home: String(h), away: String(a) };
-      }
-
-      if (lIsHome) {
-        return { home: `${h}(${tb})`, away: String(a) };
-      } else {
-        return { home: String(h), away: `${a}(${tb})` };
+      for (let i = 1; i <= MAX_PLAYERS; i++) {
+        const opt = document.createElement("option");
+        opt.value = String(i);
+        opt.textContent = String(i);
+        sel.appendChild(opt);
       }
     }
 
-    // LUNAR-stilling øverst – bruger globale totals fra adminState
-    function updateTeamStanding(lunarEnabled, lunarCourts, lunarHomeTotal, lunarAwayTotal) {
-      const standingEl = document.getElementById("teamStanding");
-      const homeSpan = document.getElementById("standingHome");
-      const awaySpan = document.getElementById("standingAway");
+    // Byg inputfelter for spillerlister
+    function buildRosterInputs() {
+      homeRosterDiv.innerHTML = "";
+      awayRosterDiv.innerHTML = "";
 
-      if (!standingEl || !homeSpan || !awaySpan) return;
+      for (let i = 1; i <= MAX_PLAYERS; i++) {
+        const hr = document.createElement("div");
+        hr.className = "player-row";
+        hr.innerHTML = `
+          <span>${i}.</span>
+          <input type="text" id="homePlayer-${i}" placeholder="Spiller ${i}" />
+        `;
+        homeRosterDiv.appendChild(hr);
 
-      const active =
-        !!lunarEnabled &&
-        Array.isArray(lunarCourts) &&
-        lunarCourts.length > 0;
+        const ar = document.createElement("div");
+        ar.className = "player-row";
+        ar.innerHTML = `
+          <span>${i}.</span>
+          <input type="text" id="awayPlayer-${i}" placeholder="Spiller ${i}" />
+        `;
+        awayRosterDiv.appendChild(ar);
+      }
+    }
 
-      if (!active) {
-        standingEl.classList.add("hidden");
-        homeSpan.textContent = "0";
-        awaySpan.textContent = "0";
+    // Byg bane-rækker (standard)
+    function buildCourtRows() {
+      courtsBody.innerHTML = "";
+
+      courtsMeta.forEach(court => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${court.sponsor}</td>
+          <td>
+            <div style="display:flex; gap:4px;">
+              <select id="homeIdx1-${court.id}"></select>
+              <select id="homeIdx2-${court.id}"></select>
+            </div>
+          </td>
+          <td>
+            <div style="display:flex; gap:4px;">
+              <select id="awayIdx1-${court.id}"></select>
+              <select id="awayIdx2-${court.id}"></select>
+            </div>
+          </td>
+          <td>
+            <button type="button" onclick="saveCourt(${court.id})">Gem bane</button>
+          </td>
+          <td class="status-cell">
+            <span id="status-${court.id}"></span>
+          </td>
+        `;
+        courtsBody.appendChild(tr);
+      });
+
+      // Udfyld select-options for standardbaner
+      courtsMeta.forEach(court => {
+        ["homeIdx1", "homeIdx2", "awayIdx1", "awayIdx2"].forEach(prefix => {
+          const sel = document.getElementById(`${prefix}-${court.id}`);
+          fillSelectOptionsForElement(sel);
+        });
+      });
+    }
+
+    // Byg checkboxe til LUNAR-baner
+    function buildLunarCourtCheckboxes() {
+      lunarCourtsContainer.innerHTML = "";
+      courtsMeta.forEach(court => {
+        const label = document.createElement("label");
+        label.className = "lunar-court-item";
+        label.innerHTML = `
+          <input type="checkbox"
+                 class="lunar-court-checkbox"
+                 data-court-id="${court.id}" />
+          <span>${court.sponsor}</span>
+        `;
+        lunarCourtsContainer.appendChild(label);
+      });
+
+      lunarCourtsContainer.addEventListener("change", handleLunarCourtCheckboxChange);
+    }
+
+    function getSelectedLunarCourtIds() {
+      const boxes = document.querySelectorAll(".lunar-court-checkbox");
+      const ids = [];
+      boxes.forEach(box => {
+        if (box.checked) {
+          ids.push(Number(box.getAttribute("data-court-id")));
+        }
+      });
+      return ids;
+    }
+
+    // NYT: Byg checkboxe til standard visning (baner til index.html)
+    function buildStandardCourtCheckboxes() {
+      if (!standardCourtsContainer) return;
+      standardCourtsContainer.innerHTML = "";
+
+      courtsMeta.forEach(court => {
+        const label = document.createElement("label");
+        label.className = "lunar-court-item";
+        label.innerHTML = `
+          <input type="checkbox"
+                 class="standard-court-checkbox"
+                 data-court-id="${court.id}" />
+          <span>${court.sponsor}</span>
+        `;
+        standardCourtsContainer.appendChild(label);
+      });
+    }
+
+    function getSelectedStandardCourtIds() {
+      const boxes = document.querySelectorAll(".standard-court-checkbox");
+      const ids = [];
+      boxes.forEach(box => {
+        if (box.checked) ids.push(Number(box.getAttribute("data-court-id")));
+      });
+      return ids;
+    }
+
+    // Opdatér drop-down med SUPER MATCH-TIE bane baseret på valgte LUNAR-baner
+    function updateSuperMatchSelect(selectedCourts) {
+      if (!lunarSuperMatchSelect) return;
+
+      const previous = lunarSuperMatchSelect.value;
+
+      lunarSuperMatchSelect.innerHTML = "";
+      const optEmpty = document.createElement("option");
+      optEmpty.value = "";
+      optEmpty.textContent = "(ingen)";
+      lunarSuperMatchSelect.appendChild(optEmpty);
+
+      selectedCourts.forEach(court => {
+        const opt = document.createElement("option");
+        opt.value = String(court.id);
+        opt.textContent = court.sponsor;
+        lunarSuperMatchSelect.appendChild(opt);
+      });
+
+      // prøv at bevare tidligere valg hvis muligt
+      const hasPrevious = Array.from(lunarSuperMatchSelect.options)
+        .some(o => o.value === previous);
+      if (hasPrevious) {
+        lunarSuperMatchSelect.value = previous;
+      }
+    }
+
+    function handleLunarCourtCheckboxChange(e) {
+      const boxes = document.querySelectorAll(".lunar-court-checkbox");
+      const checked = Array.from(boxes).filter(b => b.checked);
+
+      // max 3 baner
+      if (checked.length > 3) {
+        e.target.checked = false;
         return;
       }
 
-      const h = Number.isFinite(Number(lunarHomeTotal)) ? Number(lunarHomeTotal) : 0;
-      const a = Number.isFinite(Number(lunarAwayTotal)) ? Number(lunarAwayTotal) : 0;
-
-      homeSpan.textContent = String(h);
-      awaySpan.textContent = String(a);
-      standingEl.classList.remove("hidden");
+      rebuildLunarRoundRows();
     }
 
-function parseSetsStr(setsStr) {
-  if (!setsStr || typeof setsStr !== "string") return [];
+    // Vis/skjul LUNAR-runder sektion afhængig af checkbox
+    function handleLunarToggleChange() {
+      const enabled = lunarEnabledCheckbox.checked;
+      lunarRoundsSection.classList.toggle("hidden", !enabled);
+    }
 
-  // Hjælper: split et enkelt sæt-token i "home" og "away",
-  // men IGNORER bindestreger inde i parenteser, fx:
-  // "7-6(4)"     → ["7", "6(4)"]
-  // "6-6(2-7)"   → ["6", "6(2-7)"]
-  function splitSetToken(part) {
-    let depth = 0;
-    for (let i = 0; i < part.length; i++) {
-      const ch = part[i];
-      if (ch === "(") {
-        depth++;
-      } else if (ch === ")") {
-        if (depth > 0) depth--;
-      } else if (ch === "-" && depth === 0) {
-        // første "-" UDENFOR parenteser → skiller hjem/ude
-        const left  = part.slice(0, i).trim();
-        const right = part.slice(i + 1).trim();
-        return [left, right];
+    lunarEnabledCheckbox.addEventListener("change", handleLunarToggleChange);
+
+    // Byg rækker til LUNAR-runde-tabeller, baseret på valgte baner
+    function rebuildLunarRoundRows() {
+      const selectedIds = getSelectedLunarCourtIds();
+      const selectedCourts = courtsMeta.filter(c => selectedIds.includes(c.id));
+
+      updateSuperMatchSelect(selectedCourts);
+
+      // Runde 1
+      lunarRound1Body.innerHTML = "";
+      // Runde 2
+      lunarRound2Body.innerHTML = "";
+
+      if (selectedCourts.length === 0) {
+        const tr1 = document.createElement("tr");
+        tr1.innerHTML = `<td colspan="5">Ingen baner valgt til LUNAR-formatet.</td>`;
+        lunarRound1Body.appendChild(tr1);
+
+        const tr2 = document.createElement("tr");
+        tr2.innerHTML = `<td colspan="5">Ingen baner valgt til LUNAR-formatet.</td>`;
+        lunarRound2Body.appendChild(tr2);
+        return;
+      }
+
+      selectedCourts.forEach(court => {
+        // Runde 1 række
+        const tr1 = document.createElement("tr");
+        tr1.innerHTML = `
+          <td>${court.sponsor}</td>
+          <td>
+            <div style="display:flex; gap:4px;">
+              <select id="lunar-r1-homeIdx1-${court.id}"></select>
+              <select id="lunar-r1-homeIdx2-${court.id}"></select>
+            </div>
+          </td>
+          <td>
+            <div style="display:flex; gap:4px;">
+              <select id="lunar-r1-awayIdx1-${court.id}"></select>
+              <select id="lunar-r1-awayIdx2-${court.id}"></select>
+            </div>
+          </td>
+          <td>
+            <button type="button" onclick="saveLunarCourt(${court.id}, 1)">Gem runde 1</button>
+          </td>
+          <td class="status-cell">
+            <span id="lunar-status-r1-${court.id}"></span>
+          </td>
+        `;
+        lunarRound1Body.appendChild(tr1);
+
+        // Runde 2 række
+        const tr2 = document.createElement("tr");
+        tr2.innerHTML = `
+          <td>${court.sponsor}</td>
+          <td>
+            <div style="display:flex; gap:4px;">
+              <select id="lunar-r2-homeIdx1-${court.id}"></select>
+              <select id="lunar-r2-homeIdx2-${court.id}"></select>
+            </div>
+          </td>
+          <td>
+            <div style="display:flex; gap:4px;">
+              <select id="lunar-r2-awayIdx1-${court.id}"></select>
+              <select id="lunar-r2-awayIdx2-${court.id}"></select>
+            </div>
+          </td>
+          <td>
+            <button type="button" onclick="saveLunarCourt(${court.id}, 2)">Gem runde 2</button>
+          </td>
+          <td class="status-cell">
+            <span id="lunar-status-r2-${court.id}"></span>
+          </td>
+        `;
+        lunarRound2Body.appendChild(tr2);
+      });
+
+      // Udfyld select-options for alle LUNAR-selects
+      selectedCourts.forEach(court => {
+        [1, 2].forEach(round => {
+          ["homeIdx1", "homeIdx2", "awayIdx1", "awayIdx2"].forEach(prefix => {
+            const sel = document.getElementById(`lunar-r${round}-${prefix}-${court.id}`);
+            fillSelectOptionsForElement(sel);
+          });
+        });
+      });
+    }
+
+    // Hent adminState fra server (spillere + bane-assignments + LUNAR + standard visning)
+    async function loadAdminState() {
+      try {
+        const resp = await fetch("/api/adminState", { cache: "no-store" });
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+
+        const data = await resp.json();
+
+        const hp = Array.isArray(data.homePlayers) ? data.homePlayers : [];
+        const ap = Array.isArray(data.awayPlayers) ? data.awayPlayers : [];
+
+        // Udfyld spillerfelter
+        for (let i = 1; i <= MAX_PLAYERS; i++) {
+          const hInput = document.getElementById(`homePlayer-${i}`);
+          const aInput = document.getElementById(`awayPlayer-${i}`);
+          if (hInput) hInput.value = hp[i - 1] || "";
+          if (aInput) aInput.value = ap[i - 1] || "";
+        }
+
+        // Udfyld dropdown-valg pr. bane (standard)
+        if (Array.isArray(data.courts)) {
+          data.courts.forEach(c => {
+            const id = c.courtId;
+            const h1 = document.getElementById(`homeIdx1-${id}`);
+            const h2 = document.getElementById(`homeIdx2-${id}`);
+            const a1 = document.getElementById(`awayIdx1-${id}`);
+            const a2 = document.getElementById(`awayIdx2-${id}`);
+
+            if (h1 && c.homeIdx1 != null) h1.value = String(c.homeIdx1);
+            if (h2 && c.homeIdx2 != null) h2.value = String(c.homeIdx2);
+            if (a1 && c.awayIdx1 != null) a1.value = String(c.awayIdx1);
+            if (a2 && c.awayIdx2 != null) a2.value = String(c.awayIdx2);
+          });
+        }
+
+        // --- LUNAR: enabled + valgte baner ---
+        if (typeof data.lunarEnabled === "boolean") {
+          lunarEnabledCheckbox.checked = data.lunarEnabled;
+          handleLunarToggleChange();
+        }
+
+        if (Array.isArray(data.lunarCourts)) {
+          const ids = data.lunarCourts.map(Number);
+          const boxes = document.querySelectorAll(".lunar-court-checkbox");
+          boxes.forEach(box => {
+            const id = Number(box.getAttribute("data-court-id"));
+            box.checked = ids.includes(id);
+          });
+        }
+
+        // Byg rækker til LUNAR-runder baseret på valgte baner
+        rebuildLunarRoundRows();
+
+        // SUPER MATCH-TIE bane (vælg i select)
+        if (typeof data.lunarSuperMatchCourtId === "number" && lunarSuperMatchSelect) {
+          lunarSuperMatchSelect.value = String(data.lunarSuperMatchCourtId);
+        }
+
+        // Udfyld LUNAR runde 1/2 fra server
+        if (Array.isArray(data.lunarRound1)) {
+          data.lunarRound1.forEach(c => {
+            const id = c.courtId;
+            const h1 = document.getElementById(`lunar-r1-homeIdx1-${id}`);
+            const h2 = document.getElementById(`lunar-r1-homeIdx2-${id}`);
+            const a1 = document.getElementById(`lunar-r1-awayIdx1-${id}`);
+            const a2 = document.getElementById(`lunar-r1-awayIdx2-${id}`);
+
+            if (h1 && c.homeIdx1 != null) h1.value = String(c.homeIdx1);
+            if (h2 && c.homeIdx2 != null) h2.value = String(c.homeIdx2);
+            if (a1 && c.awayIdx1 != null) a1.value = String(c.awayIdx1);
+            if (a2 && c.awayIdx2 != null) a2.value = String(c.awayIdx2);
+          });
+        }
+
+        if (Array.isArray(data.lunarRound2)) {
+          data.lunarRound2.forEach(c => {
+            const id = c.courtId;
+            const h1 = document.getElementById(`lunar-r2-homeIdx1-${id}`);
+            const h2 = document.getElementById(`lunar-r2-homeIdx2-${id}`);
+            const a1 = document.getElementById(`lunar-r2-awayIdx1-${id}`);
+            const a2 = document.getElementById(`lunar-r2-awayIdx2-${id}`);
+
+            if (h1 && c.homeIdx1 != null) h1.value = String(c.homeIdx1);
+            if (h2 && c.homeIdx2 != null) h2.value = String(c.homeIdx2);
+            if (a1 && c.awayIdx1 != null) a1.value = String(c.awayIdx1);
+            if (a2 && c.awayIdx2 != null) a2.value = String(c.awayIdx2);
+          });
+        }
+
+        // SUPER MATCH-TIE spillere
+        if (data.lunarSuperMatchPlayers) {
+          const p = data.lunarSuperMatchPlayers;
+          if (superHomeIdx1 && p.homeIdx1 != null) superHomeIdx1.value = String(p.homeIdx1);
+          if (superHomeIdx2 && p.homeIdx2 != null) superHomeIdx2.value = String(p.homeIdx2);
+          if (superAwayIdx1 && p.awayIdx1 != null) superAwayIdx1.value = String(p.awayIdx1);
+          if (superAwayIdx2 && p.awayIdx2 != null) superAwayIdx2.value = String(p.awayIdx2);
+        }
+
+        // --- NYT: Standard visning (baner til index.html når LUNAR ikke er aktivt) ---
+        const standardBoxes = document.querySelectorAll(".standard-court-checkbox");
+
+        if (Array.isArray(data.standardVisibleCourts)) {
+          const ids = data.standardVisibleCourts.map(Number);
+          standardBoxes.forEach(box => {
+            const id = Number(box.getAttribute("data-court-id"));
+            box.checked = ids.includes(id);
+          });
+        } else {
+          // fallback: default til alle baner hvis state ikke findes endnu
+          standardBoxes.forEach(box => (box.checked = true));
+        }
+      } catch (err) {
+        console.error("Fejl ved loadAdminState:", err);
       }
     }
-    // fandt ingen "-" udenfor parenteser → hele strengen som "home"
-    return [part.trim(), ""];
-  }
 
-  return setsStr
-    .split(/[;,]/)        // sæt adskilt af komma/semikolon
-    .map(s => s.trim())
-    .filter(Boolean)
-    .map(part => {
-      const [homeRaw, awayRaw] = splitSetToken(part);
-      return {
-        home: homeRaw || "",
-        away: awayRaw || "",
+    async function saveRoster() {
+      const hp = [];
+      const ap = [];
+      for (let i = 1; i <= MAX_PLAYERS; i++) {
+        const hInput = document.getElementById(`homePlayer-${i}`);
+        const aInput = document.getElementById(`awayPlayer-${i}`);
+        hp.push(hInput ? hInput.value.trim() : "");
+        ap.push(aInput ? aInput.value.trim() : "");
+      }
+
+      rosterStatus.textContent = "Gemmer...";
+      rosterStatus.style.color = "#e5e7eb";
+
+      try {
+        const resp = await fetch("/api/setRoster", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ homePlayers: hp, awayPlayers: ap }),
+        });
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+
+        rosterStatus.textContent = "Spillerliste gemt";
+        rosterStatus.style.color = "#22c55e";
+      } catch (err) {
+        console.error("Fejl ved saveRoster:", err);
+        rosterStatus.textContent = "Fejl ved gem";
+        rosterStatus.style.color = "#f97373";
+      }
+
+      setTimeout(() => {
+        rosterStatus.textContent = "";
+      }, 3000);
+    }
+
+    async function saveCourt(courtId) {
+      const statusSpan = document.getElementById(`status-${courtId}`);
+      const h1 = document.getElementById(`homeIdx1-${courtId}`);
+      const h2 = document.getElementById(`homeIdx2-${courtId}`);
+      const a1 = document.getElementById(`awayIdx1-${courtId}`);
+      const a2 = document.getElementById(`awayIdx2-${courtId}`);
+
+      if (!statusSpan || !h1 || !h2 || !a1 || !a2) return;
+
+      statusSpan.textContent = "Gemmer...";
+      statusSpan.className = "status-cell";
+
+      const body = {
+        courtId,
+        homeIdx1: h1.value ? Number(h1.value) : null,
+        homeIdx2: h2.value ? Number(h2.value) : null,
+        awayIdx1: a1.value ? Number(a1.value) : null,
+        awayIdx2: a2.value ? Number(a2.value) : null,
       };
-    })
-    .slice(0, 3);         // max 3 sæt
-}
 
+      try {
+        const resp = await fetch("/api/setCourtPlayers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
 
-// Hjælper: byg sætscore ud fra resultatobjektet (kombinerer felter + setsStr)
-function getSetDisplayFromResult(m, setIndex) {
-  // 🔹 Specielt for 3. sæt:
-  // Vis bare det rå 3. token fra setsStr – fx "6-6(4-7)"
-  // uden at splitte det op. Så kan vi ikke komme til at klippe noget af.
-  if (setIndex === 3 && m.setsStr) {
-    const tokens = (m.setsStr || "")
-      .split(/[;,]/)
-      .map(s => s.trim())
-      .filter(Boolean);
+        statusSpan.textContent = "Gemt";
+        statusSpan.className = "status-cell status-ok";
+      } catch (err) {
+        console.error("Fejl ved saveCourt:", err);
+        statusSpan.textContent = "Fejl";
+        statusSpan.className = "status-cell status-error";
+      }
 
-    if (tokens.length >= 3) {
-      // hele strengen for 3. sæt i én "home"-streng
-      return {
-        home: tokens[2],
-        away: "",
+      setTimeout(() => {
+        statusSpan.textContent = "";
+        statusSpan.className = "status-cell";
+      }, 3000);
+    }
+
+    // Gem LUNAR-opsætning (on/off + hvilke baner + super-bane)
+    async function saveLunarConfig() {
+      const enabled = lunarEnabledCheckbox.checked;
+      const courtIds = getSelectedLunarCourtIds();
+      const superMatchValue = lunarSuperMatchSelect && lunarSuperMatchSelect.value
+        ? Number(lunarSuperMatchSelect.value)
+        : null;
+
+      lunarConfigStatus.textContent = "Gemmer...";
+      lunarConfigStatus.style.color = "#e5e7eb";
+
+      try {
+        const resp = await fetch("/api/setLunarConfig", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            lunarEnabled: enabled,
+            lunarCourts: courtIds,
+            lunarSuperMatchCourtId: superMatchValue,
+          }),
+        });
+
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+
+        lunarConfigStatus.textContent = "LUNAR-opsætning gemt";
+        lunarConfigStatus.style.color = "#22c55e";
+      } catch (err) {
+        console.error("Fejl ved saveLunarConfig:", err);
+        lunarConfigStatus.textContent = "Fejl ved gem";
+        lunarConfigStatus.style.color = "#f97373";
+      }
+
+      setTimeout(() => {
+        lunarConfigStatus.textContent = "";
+      }, 3000);
+    }
+
+    // Gem spillerpar for én bane og én runde i LUNAR-formatet
+    async function saveLunarCourt(courtId, round) {
+      const statusSpan = document.getElementById(`lunar-status-r${round}-${courtId}`);
+      const h1 = document.getElementById(`lunar-r${round}-homeIdx1-${courtId}`);
+      const h2 = document.getElementById(`lunar-r${round}-homeIdx2-${courtId}`);
+      const a1 = document.getElementById(`lunar-r${round}-awayIdx1-${courtId}`);
+      const a2 = document.getElementById(`lunar-r${round}-awayIdx2-${courtId}`);
+
+      if (!statusSpan || !h1 || !h2 || !a1 || !a2) return;
+
+      statusSpan.textContent = "Gemmer...";
+      statusSpan.className = "status-cell";
+
+      const body = {
+        round,
+        courtId,
+        homeIdx1: h1.value ? Number(h1.value) : null,
+        homeIdx2: h2.value ? Number(h2.value) : null,
+        awayIdx1: a1.value ? Number(a1.value) : null,
+        awayIdx2: a2.value ? Number(a2.value) : null,
       };
-    }
-  }
 
-  // 🔹 For 1. og 2. sæt: brug de normale felter som før
-  const homeKey = setIndex === 1 ? "set1Home" : setIndex === 2 ? "set2Home" : null;
-  const awayKey = setIndex === 1 ? "set1Away" : setIndex === 2 ? "set2Away" : null;
-  const tbKey   = setIndex === 1 ? "set1LoserTbPoints" : setIndex === 2 ? "set2LoserTbPoints" : null;
-  const lhKey   = setIndex === 1 ? "set1LoserIsHome"   : setIndex === 2 ? "set2LoserIsHome"   : null;
+      try {
+        const resp = await fetch("/api/setLunarCourtPlayers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
 
-  if (homeKey && awayKey) {
-    const h = m[homeKey];
-    const a = m[awayKey];
-
-    if (typeof h === "number" && typeof a === "number" && h >= 0 && a >= 0) {
-      const tb = tbKey ? m[tbKey] : null;
-      const lIsHome = lhKey ? !!m[lhKey] : false;
-
-      if (tb == null || tb < 0) {
-        return { home: String(h), away: String(a) };
+        statusSpan.textContent = "Gemt";
+        statusSpan.className = "status-cell status-ok";
+      } catch (err) {
+        console.error("Fejl ved saveLunarCourt:", err);
+        statusSpan.textContent = "Fejl";
+        statusSpan.className = "status-cell status-error";
       }
 
-      if (lIsHome) {
-        return { home: `${h}(${tb})`, away: String(a) };
-      } else {
-        return { home: String(h), away: `${a}(${tb})` };
+      setTimeout(() => {
+        statusSpan.textContent = "";
+        statusSpan.className = "status-cell";
+      }, 3000);
+    }
+
+    // Gem spillere til SUPER MATCH-TIE (7. kamp)
+    async function saveLunarSuperPlayers() {
+      if (!superHomeIdx1 || !superHomeIdx2 || !superAwayIdx1 || !superAwayIdx2) return;
+
+      lunarSuperStatus.textContent = "Gemmer...";
+      lunarSuperStatus.style.color = "#e5e7eb";
+
+      const body = {
+        homeIdx1: superHomeIdx1.value ? Number(superHomeIdx1.value) : null,
+        homeIdx2: superHomeIdx2.value ? Number(superHomeIdx2.value) : null,
+        awayIdx1: superAwayIdx1.value ? Number(superAwayIdx1.value) : null,
+        awayIdx2: superAwayIdx2.value ? Number(superAwayIdx2.value) : null,
+      };
+
+      try {
+        const resp = await fetch("/api/setLunarSuperMatchPlayers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+
+        lunarSuperStatus.textContent = "Gemt";
+        lunarSuperStatus.style.color = "#22c55e";
+      } catch (err) {
+        console.error("Fejl ved saveLunarSuperPlayers:", err);
+        lunarSuperStatus.textContent = "Fejl";
+        lunarSuperStatus.style.color = "#f97373";
       }
+
+      setTimeout(() => {
+        lunarSuperStatus.textContent = "";
+      }, 3000);
     }
-  }
 
-  // 🔹 Fallback: brug parseSetsStr for sæt 1 og 2, hvis noget er gemt i setsStr
-  const parsed = parseSetsStr(m.setsStr || "");
-  const idx = setIndex - 1;
-  if (parsed[idx]) {
-    return {
-      home: parsed[idx].home || "",
-      away: parsed[idx].away || "",
-    };
-  }
+    // NYT: Gem standard-baner der skal vises på index.html (når LUNAR ikke er aktivt)
+    async function saveStandardVisibleCourts() {
+      if (!standardCourtsStatus) return;
 
-  return { home: "", away: "" };
-}
+      const courtIds = getSelectedStandardCourtIds();
 
+      standardCourtsStatus.textContent = "Gemmer...";
+      standardCourtsStatus.style.color = "#e5e7eb";
 
-function formatSetCell(setObj) {
-  if (!setObj) return "";
-  const h = (setObj.home || "").trim();
-  const a = (setObj.away || "").trim();
+      try {
+        const resp = await fetch("/api/setStandardVisibleCourts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ standardVisibleCourts: courtIds }),
+        });
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
 
-  if (h && a) return `${h}-${a}`;
-  if (h) return h;
-  if (a) return a;
-  return "";
-}
-    
-// Slutskærm – oversigt over alle LUNAR-kampe
-function renderLunarSummary(lunarResults) {
-  const container = document.getElementById("lunarSummaryContent");
-  if (!container) return;
-  console.log("🔍 lunarResults til slutsiden:", lunarResults);
-  container.innerHTML = "";
+        standardCourtsStatus.textContent = "Gemt";
+        standardCourtsStatus.style.color = "#22c55e";
+      } catch (err) {
+        console.error("Fejl ved saveStandardVisibleCourts:", err);
+        standardCourtsStatus.textContent = "Fejl";
+        standardCourtsStatus.style.color = "#f97373";
+      }
 
-  if (!Array.isArray(lunarResults) || lunarResults.length === 0) {
-    container.textContent = "Ingen LUNAR-resultater.";
-    return;
-  }
-
-  // Sorter efter runde (1,2,7) og bane
-  const sorted = [...lunarResults].sort((a, b) => {
-    const ra = Number(a.round ?? 0);
-    const rb = Number(b.round ?? 0);
-    if (ra !== rb) return ra - rb;
-    const ca = Number(a.courtId ?? 0);
-    const cb = Number(b.courtId ?? 0);
-    return ca - cb;
-  });
-
-  // Del op i runder
-  const groups = { 1: [], 2: [], 7: [] };
-  sorted.forEach(m => {
-    const r = Number(m.round);
-    if (r === 1 || r === 2 || r === 7) {
-      groups[r].push(m);
+      setTimeout(() => {
+        standardCourtsStatus.textContent = "";
+      }, 3000);
     }
-  });
 
-  [1, 2, 7].forEach(r => {
-    const list = groups[r];
-    if (!list || list.length === 0) return;
+    // Init
+    buildRosterInputs();
+    buildCourtRows();
+    buildLunarCourtCheckboxes();
+    buildStandardCourtCheckboxes(); // NYT
+    handleLunarToggleChange();
 
-    const section = document.createElement("section");
-    section.className = "summary-section";
-
-    const h = document.createElement("h3");
-    h.className = "summary-round-title";
-    if (r === 1) h.textContent = "Lunar runde 1";
-    else if (r === 2) h.textContent = "Lunar runde 2";
-    else h.textContent = "7. kamp – SUPER MATCH-TIE";
-    section.appendChild(h);
-
-    // Tabel med én række pr. kamp
-    const table = document.createElement("table");
-    table.className = "summary-table";
-
-    const thead = document.createElement("thead");
-    const headerRow = document.createElement("tr");
-    headerRow.className = "summary-header-row";
-
-    const thKamp = document.createElement("th");
-    thKamp.textContent = "Kamp";
-    headerRow.appendChild(thKamp);
-
-    const thHome = document.createElement("th");
-    thHome.textContent = "Hjemme";
-    headerRow.appendChild(thHome);
-
-    const thAway = document.createElement("th");
-    thAway.textContent = "Ude";
-    headerRow.appendChild(thAway);
-
-    const thS1 = document.createElement("th");
-    thS1.textContent = "1. sæt";
-    headerRow.appendChild(thS1);
-
-    const thS2 = document.createElement("th");
-    thS2.textContent = "2. sæt";
-    headerRow.appendChild(thS2);
-
-    const thS3 = document.createElement("th");
-    thS3.textContent = "3. sæt";
-    headerRow.appendChild(thS3);
-
-    const thWinner = document.createElement("th");
-    thWinner.textContent = "Vinder";
-    headerRow.appendChild(thWinner);
-
-    thead.appendChild(headerRow);
-    table.appendChild(thead);
-
-    const tbody = document.createElement("tbody");
-
-    list.forEach((m, idx) => {
-      const tr = document.createElement("tr");
-
-      const tdKamp = document.createElement("td");
-      tdKamp.textContent = `Bane ${m.courtId ?? "?"}`;
-      tr.appendChild(tdKamp);
-
-      const tdHome = document.createElement("td");
-      tdHome.textContent = m.homeName || "Hjemme";
-      tr.appendChild(tdHome);
-
-      const tdAway = document.createElement("td");
-      tdAway.textContent = m.awayName || "Ude";
-      tr.appendChild(tdAway);
-
-      const s1 = getSetDisplayFromResult(m, 1);
-      const s2 = getSetDisplayFromResult(m, 2);
-      const s3 = getSetDisplayFromResult(m, 3);
-
-      const tdS1 = document.createElement("td");
-tdS1.textContent = formatSetCell(s1);
-tr.appendChild(tdS1);
-
-const tdS2 = document.createElement("td");
-tdS2.textContent = formatSetCell(s2);
-tr.appendChild(tdS2);
-
-const tdS3 = document.createElement("td");
-tdS3.textContent = formatSetCell(s3);
-tr.appendChild(tdS3);
-
-      const tdWinner = document.createElement("td");
-      const w = Number(m.winner || 0);
-      if (w === 1) tdWinner.textContent = "Hjemme";
-      else if (w === 2) tdWinner.textContent = "Ude";
-      else tdWinner.textContent = "";
-      tr.appendChild(tdWinner);
-
-      tbody.appendChild(tr);
+    // Udfyld select-options for SUPER MATCH-TIE spiller-valg
+    [superHomeIdx1, superHomeIdx2, superAwayIdx1, superAwayIdx2].forEach(sel => {
+      fillSelectOptionsForElement(sel);
     });
 
-    table.appendChild(tbody);
-    section.appendChild(table);
-    container.appendChild(section);
-  });
-}
-
-    // Hent adminState + ALLE baner og opdater UI
-    async function updateAllCourts() {
-      try {
-        const [adminResp, courtsResp] = await Promise.all([
-          fetch(BASE_URL + "/api/adminState", { cache: "no-store" }),
-          fetch(BASE_URL + "/api/courts", { cache: "no-store" }),
-        ]);
-
-        if (!adminResp.ok) throw new Error("HTTP adminState " + adminResp.status);
-        if (!courtsResp.ok) throw new Error("HTTP courts " + courtsResp.status);
-
-        const adminState = await adminResp.json();
-        const data = await courtsResp.json();
-
-        let lunarEnabled = false;
-        let lunarCourts = [];
-
-        try {
-          lunarEnabled = !!adminState.lunarEnabled;
-          lunarCourts = Array.isArray(adminState.lunarCourts)
-            ? adminState.lunarCourts.map(Number).filter(n => Number.isFinite(n))
-            : [];
-        } catch (e) {
-          console.warn("Kunne ikke læse LUNAR-felter fra adminState:", e);
-          lunarEnabled = false;
-          lunarCourts = [];
-        }
-
-        const courtsSection = document.getElementById("courtsList");
-        const infoCard = document.querySelector(".info-card");
-        const summaryEl = document.getElementById("lunarSummary");
-
-        // Global LUNAR-stilling (antal vundne kampe)
-        // Global LUNAR-stilling (antal vundne kampe)
-        const homeTotal = Number(adminState.lunarHomeWinsTotal ?? 0);
-        const awayTotal = Number(adminState.lunarAwayWinsTotal ?? 0);
-        updateTeamStanding(lunarEnabled, lunarCourts, homeTotal, awayTotal);
-
-        const lunarResults = Array.isArray(adminState.lunarResults)
-          ? adminState.lunarResults
-          : [];
-
-        // Hvor mange baner er med i LUNAR → hvor mange kampe i runde 1+2?
-        const baseMatches = lunarCourts.length * 2; // fx 3 baner → 6 kampe
-
-        // Tæl hvor mange resultater vi har for runde 1+2 og for runde 7
-        let r1r2Count = 0;
-        let superCount = 0;
-
-        lunarResults.forEach(m => {
-          if (!m) return;
-          const r = Number(m.round ?? 0);
-          if (r === 1 || r === 2) {
-            r1r2Count++;
-          } else if (r === 7) {
-            superCount++;
-          }
-        });
-
-        // Slutskærm vises KUN når:
-        //  - LUNAR er aktiv + der er baner
-        //  - alle kampe i runde 1+2 ER spillet (r1r2Count >= baseMatches)
-        //  OG:
-        //    - enten er stillingen IKKE lige (fx 4–2, 5–1, 6–0) → afgøres på 6 kampe
-        //    - eller også ER stillingen lige (fx 3–3), men der ER spillet mindst én 7. kamp (superCount >= 1)
-let showSummary = false;
-
-// Tving slutskærm via URL ?summary=1 (kræver mindst én kamp registreret)
-if (forceSummary && lunarEnabled && r1r2Count + superCount > 0) {
-  showSummary = true;
-}
-// Ellers normal logik
-else if (
-  lunarEnabled &&
-  Array.isArray(lunarCourts) &&
-  lunarCourts.length > 0 &&
-  r1r2Count >= baseMatches
-) {
-  if (homeTotal !== awayTotal) {
-    // Afgjort på runde 1+2 (fx 4–2)
-    showSummary = true;
-  } else if (homeTotal === awayTotal && superCount >= 1) {
-    // Står lige efter runde 1+2 (fx 3–3), men SUPER MATCH-TIE er spillet
-    showSummary = true;
-  }
-}
-
-
-
-
-        if (showSummary) {
-          // Skjul banekort og info-tekst, vis slutskærm
-          if (courtsSection) courtsSection.classList.add("hidden");
-          if (infoCard) infoCard.classList.add("hidden");
-          if (summaryEl) {
-            summaryEl.classList.remove("hidden");
-            renderLunarSummary(lunarResults);
-          }
-
-          // Skjul også individuelle kort
-          courts.forEach(court => {
-            const cardEl = document.getElementById(`court-${court.id}`);
-            if (cardEl) cardEl.style.display = "none";
-          });
-
-          return; // Ingen grund til at opdatere live-score
-        } else {
-          if (courtsSection) courtsSection.classList.remove("hidden");
-          if (infoCard) infoCard.classList.remove("hidden");
-          if (summaryEl) summaryEl.classList.add("hidden");
-        }
-
-        // Vis/skjul baner ift. LUNAR i normal visning
-        courts.forEach(court => {
-          const cardEl = document.getElementById(`court-${court.id}`);
-          if (!cardEl) return;
-
-          if (lunarEnabled && lunarCourts.length > 0) {
-            cardEl.style.display = lunarCourts.includes(court.id) ? "" : "none";
-          } else {
-            cardEl.style.display = "";
-          }
-        });
-
-        // Skal SUPER MATCH-TIE badge være aktiv?
-        const superShouldBeVisible =
-          lunarEnabled &&
-          Array.isArray(lunarCourts) &&
-          lunarCourts.length > 0 &&
-          homeTotal === 3 &&
-          awayTotal === 3;
-
-        // Opdater hvert banekort (live)
-        data.forEach(c => {
-          const id = c.courtId;
-
-          const statusEl     = document.getElementById(`status-${id}`);
-          const homeName1El  = document.getElementById(`homeName1-${id}`);
-          const homeName2El  = document.getElementById(`homeName2-${id}`);
-          const awayName1El  = document.getElementById(`awayName1-${id}`);
-          const awayName2El  = document.getElementById(`awayName2-${id}`);
-
-          const homeSet1El   = document.getElementById(`homeSet1-${id}`);
-          const homeSet2El   = document.getElementById(`homeSet2-${id}`);
-          const awaySet1El   = document.getElementById(`awaySet1-${id}`);
-          const awaySet2El   = document.getElementById(`awaySet2-${id}`);
-
-          const homePointsEl = document.getElementById(`homePoints-${id}`);
-          const awayPointsEl = document.getElementById(`awayPoints-${id}`);
-          const homeGamesEl  = document.getElementById(`homeGames-${id}`);
-          const awayGamesEl  = document.getElementById(`awayGames-${id}`);
-
-          const updatedEl    = document.getElementById(`updated-${id}`);
-
-          const teamHomeEl    = document.querySelector(`#court-${id} .team-home`);
-          const teamAwayEl    = document.querySelector(`#court-${id} .team-away`);
-          const setsSummaryEl = document.getElementById(`setsSummary-${id}`);
-          const formatEl      = document.getElementById(`format-${id}`);
-
-          const lunarBadgeEl = document.getElementById(`lunarBadge-${id}`);
-          const superBadgeEl = document.getElementById(`superBadge-${id}`);
-
-          if (!statusEl) return;
-
-          const hasMatch      = c.hasMatch !== undefined ? c.hasMatch : true;
-          const matchFinished = !!c.matchFinished;
-          const winner        = typeof c.winner === "number" ? c.winner : 0;
-          const mtb3rd        = !!c.mtb3rd;
-
-          // --- init cache-strukturer ---
-          if (!Object.prototype.hasOwnProperty.call(lastStates, id)) {
-            lastStates[id] = null;
-          }
-          if (!Object.prototype.hasOwnProperty.call(lockedScore, id)) {
-            lockedScore[id] = null;
-          }
-
-          const prev = lastStates[id];
-
-          // Hvor mange sæt har kampen i alt (slut)?
-          const totalSetsNow =
-            Number(c.homeSets ?? 0) + Number(c.awaySets ?? 0);
-          const endedInThreePlus =
-            matchFinished && hasMatch && totalSetsNow >= 3;
-
-          // Detekter "rigtig reset": ingen kamp og alt 0/tomt
-          const isReset =
-            !hasMatch &&
-            Number(c.homeGames ?? 0) === 0 &&
-            Number(c.awayGames ?? 0) === 0 &&
-            Number(c.homeSets ?? 0) === 0 &&
-            Number(c.awaySets ?? 0) === 0 &&
-            (!c.setsStr || c.setsStr.trim() === "");
-
-          if (isReset) {
-            lockedScore[id] = null;
-          }
-
-          // Har kampen lige nu *skiftet* til "slut"?
-          const justFinished =
-            matchFinished &&
-            hasMatch &&
-            (!prev || !prev.matchFinished);
-
-          // Kun lås score i gul/blå, hvis kampen sluttede i 3. sæt
-if (justFinished) {
-  if (endedInThreePlus) {
-    // Brug altid den AKTUELLE state (c), som indeholder 7–5 osv.
-    const src = c;
-    lockedScore[id] = {
-      homePoints: src.homePoints,
-      awayPoints: src.awayPoints,
-      homePointsStr: src.homePointsStr,
-      awayPointsStr: src.awayPointsStr,
-      homeGames: src.homeGames,
-      awayGames: src.awayGames,
-    };
-  } else {
-    // Slut i 2 sæt → ingen låst score
-    lockedScore[id] = null;
-  }
-}
-
-
-          // Hvis kampen ikke længere er slut (teoretisk) → ryd lås
-          if (!matchFinished) {
-            lockedScore[id] = null;
-          }
-
-          // --- LUNAR badges (som før) ---
-          if (lunarBadgeEl) {
-            if (c.isLunar) {
-              lunarBadgeEl.classList.remove("hidden");
-
-              if (c.isSuperMatchTie && superShouldBeVisible) {
-                lunarBadgeEl.textContent = "LUNAR";
-              } else if (c.lunarRoundUsed === 1 || c.lunarRoundUsed === 2) {
-                lunarBadgeEl.textContent = `LUNAR R${c.lunarRoundUsed}`;
-              } else {
-                lunarBadgeEl.textContent = "LUNAR";
-              }
-            } else {
-              lunarBadgeEl.classList.add("hidden");
-            }
-          }
-
-          if (superBadgeEl) {
-            if (c.isSuperMatchTie && superShouldBeVisible) {
-              superBadgeEl.classList.remove("hidden");
-            } else {
-              superBadgeEl.classList.add("hidden");
-            }
-          }
-
-          // Status-tekst
-          if (!hasMatch) {
-            statusEl.textContent = "Ingen kamp";
-            statusEl.classList.remove("error");
-          } else if (!c.online) {
-            statusEl.textContent = "Ingen forbindelse";
-            statusEl.classList.add("error");
-          } else if (matchFinished) {
-            statusEl.textContent = "Slut";
-            statusEl.classList.remove("error");
-          } else {
-            statusEl.textContent = "I gang";
-            statusEl.classList.remove("error");
-          }
-
-          // Navne -> split til spiller 1/2
-          const homeRaw = c.homeName || "Hjemme";
-          const awayRaw = c.awayName || "Ude";
-
-          const homeParts = homeRaw.split("/").map(s => s.trim()).filter(Boolean);
-          const awayParts = awayRaw.split("/").map(s => s.trim()).filter(Boolean);
-
-          if (homeName1El) homeName1El.textContent = homeParts[0] || homeRaw || "Hjemme";
-          if (homeName2El) homeName2El.textContent = homeParts[1] || "";
-
-          if (awayName1El) awayName1El.textContent = awayParts[0] || awayRaw || "Ude";
-          if (awayName2El) awayName2El.textContent = awayParts[1] || "";
-
-          // Sæt 1 og 2 (grå bokse) – uændret
-          const set1 = buildSetStrings(c, 1);
-          const set2 = buildSetStrings(c, 2);
-
-          if (homeSet1El) homeSet1El.textContent = set1.home;
-          if (awaySet1El) awaySet1El.textContent = set1.away;
-          if (homeSet2El) homeSet2El.textContent = set2.home;
-          if (awaySet2El) awaySet2El.textContent = set2.away;
-
-          // Reset set-winner-klasser
-          if (homeSet1El) homeSet1El.classList.remove("set-winner");
-          if (awaySet1El) awaySet1El.classList.remove("set-winner");
-          if (homeSet2El) homeSet2El.classList.remove("set-winner");
-          if (awaySet2El) awaySet2El.classList.remove("set-winner");
-
-          // Vinder i sæt 1
-          const s1hVal = c.set1Home;
-          const s1aVal = c.set1Away;
-          if (typeof s1hVal === "number" &&
-              typeof s1aVal === "number" &&
-              s1hVal >= 0 &&
-              s1aVal >= 0 &&
-              s1hVal !== s1aVal) {
-            if (s1hVal > s1aVal) {
-              homeSet1El && homeSet1El.classList.add("set-winner");
-            } else {
-              awaySet1El && awaySet1El.classList.add("set-winner");
-            }
-          }
-
-          // Vinder i sæt 2
-          const s2hVal = c.set2Home;
-          const s2aVal = c.set2Away;
-          if (typeof s2hVal === "number" &&
-              typeof s2aVal === "number" &&
-              s2hVal >= 0 &&
-              s2aVal >= 0 &&
-              s2hVal !== s2aVal) {
-            if (s2hVal > s2aVal) {
-              homeSet2El && homeSet2El.classList.add("set-winner");
-            } else {
-              awaySet2El && awaySet2El.classList.add("set-winner");
-            }
-          }
-
-          // Reset kamp-vinder highlight
-          if (teamHomeEl) teamHomeEl.classList.remove("team-winner");
-          if (teamAwayEl) teamAwayEl.classList.remove("team-winner");
-
-          if (matchFinished && hasMatch) {
-            if (winner === 1 && teamHomeEl) {
-              teamHomeEl.classList.add("team-winner");
-            } else if (winner === 2 && teamAwayEl) {
-              teamAwayEl.classList.add("team-winner");
-            }
-          }
-
-          // --- GUL (point) + BLÅ (partier) ---
-
-          if (matchFinished && !endedInThreePlus) {
-            // Slut i 2 sæt → gul/blå ryger til "–"
-            if (homePointsEl) homePointsEl.textContent = "–";
-            if (awayPointsEl) awayPointsEl.textContent = "–";
-            if (homeGamesEl)  homeGamesEl.textContent  = "–";
-            if (awayGamesEl)  awayGamesEl.textContent  = "–";
-          } else {
-            // I gang ELLER slut i 3. sæt → brug låst score (hvis findes), ellers live
-            const source = (matchFinished && endedInThreePlus && lockedScore[id])
-              ? lockedScore[id]
-              : {
-                  homePoints: c.homePoints,
-                  awayPoints: c.awayPoints,
-                  homePointsStr: c.homePointsStr,
-                  awayPointsStr: c.awayPointsStr,
-                  homeGames: c.homeGames,
-                  awayGames: c.awayGames,
-                };
-
-            if (homePointsEl) {
-              const hpStr = source.homePointsStr ?? null;
-              homePointsEl.textContent =
-                hpStr !== null && hpStr !== undefined && hpStr !== ""
-                  ? hpStr
-                  : String(source.homePoints ?? "");
-            }
-
-            if (awayPointsEl) {
-              const apStr = source.awayPointsStr ?? null;
-              awayPointsEl.textContent =
-                apStr !== null && apStr !== undefined && apStr !== ""
-                  ? apStr
-                  : String(source.awayPoints ?? "");
-            }
-
-            if (homeGamesEl) homeGamesEl.textContent = String(source.homeGames ?? 0);
-            if (awayGamesEl) awayGamesEl.textContent = String(source.awayGames ?? 0);
-          }
-
-          // Samlet sætresumé (her kan 3. sæt/match-tiebreak ses)
-          if (setsSummaryEl) {
-            if (c.setsStr && c.setsStr.trim() !== "") {
-              setsSummaryEl.textContent = "• " + c.setsStr;
-            } else {
-              setsSummaryEl.textContent = "";
-            }
-          }
-
-          // 3. sæt-format
-          if (formatEl) {
-            if (mtb3rd) {
-              formatEl.textContent = "• 3. sæt: match-tie (10)";
-            } else {
-              formatEl.textContent = "";
-            }
-          }
-
-          // Tidsstempel
-          if (updatedEl) {
-            const now = new Date();
-            const timeStr = now.toLocaleTimeString("da-DK", {
-              hour: "2-digit",
-              minute: "2-digit",
-              second: "2-digit",
-            });
-            updatedEl.textContent = timeStr;
-          }
-
-          // Til sidst: husk denne state til næste tick
-          lastStates[id] = c;
-        });
-
-
-      } catch (err) {
-        console.error("Fejl ved hentning af courts/adminState:", err);
-
-        courts.forEach(court => {
-          const statusEl = document.getElementById(`status-${court.id}`);
-          if (statusEl) {
-            statusEl.textContent = "Ingen forbindelse";
-            statusEl.classList.add("error");
-          }
-        });
-
-        const standingEl = document.getElementById("teamStanding");
-        if (standingEl) standingEl.classList.add("hidden");
-
-        const summaryEl = document.getElementById("lunarSummary");
-        if (summaryEl) summaryEl.classList.add("hidden");
-      }
-    }
-
-    // Første opdatering + interval
-    updateAllCourts();
-    setInterval(updateAllCourts, 1000);
+    loadAdminState();
   </script>
 </body>
 </html>
