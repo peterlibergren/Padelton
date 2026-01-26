@@ -2,11 +2,12 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
+const crypto = require("crypto");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
+app.use(express.json({ limit: "256kb" }));
 app.use(cors());
 
 // =====================
@@ -51,7 +52,6 @@ let homePlayers = new Array(MAX_PLAYERS).fill("");
 let awayPlayers = new Array(MAX_PLAYERS).fill("");
 
 // ==== BANENAVNE (meta) ====
-// Default values (kan ændres via admin og gemmes i state.json)
 const DEFAULT_COURTS_META = [
   { id: 1, sponsor: "Bane 1 – BetaPack" },
   { id: 2, sponsor: "Bane 2 – Brdr. Thybo" },
@@ -71,21 +71,17 @@ for (let i = 1; i <= 5; i++) {
   courts[i] = {
     courtId: i,
 
-    // Basisnavne (fra controller/ESP)
     homeName: "Hjemme",
     awayName: "Ude",
 
-    // Admin-overrides (fri tekst)
     adminHomeName: null,
     adminAwayName: null,
 
-    // Spiller-valg (1..16, null = ingen) – standardopsætning
     homeIdx1: null,
     homeIdx2: null,
     awayIdx1: null,
     awayIdx2: null,
 
-    // Aktuel score
     homePoints: 0,
     awayPoints: 0,
     homePointsStr: "0",
@@ -95,8 +91,6 @@ for (let i = 1; i <= 5; i++) {
     homeSets: 0,
     awaySets: 0,
 
-    // Set-historik (fra controlleren)
-    // -1 betyder "ikke sat / ikke spillet"
     set1Home: -1,
     set1Away: -1,
     set1LoserTbPoints: -1,
@@ -107,13 +101,11 @@ for (let i = 1; i <= 5; i++) {
     set2LoserTbPoints: -1,
     set2LoserIsHome: false,
 
-    // valgfri fritekst – samlet set-resultat, fx "6-3,7-6(5),10-8(8)"
     setsStr: "",
 
-    // Kampstatus (fra controller/bane-ESP)
-    matchFinished: false, // true = kampen er slut
-    winner: 0, // 0 = ingen, 1 = hjemme, 2 = ude
-    mtb3rd: false, // true = 3. sæt er match-tie til 10
+    matchFinished: false,
+    winner: 0,
+    mtb3rd: false,
 
     online: false,
     lastUpdate: 0,
@@ -121,11 +113,11 @@ for (let i = 1; i <= 5; i++) {
 }
 
 // ==== LUNAR-STATE (i RAM) ====
-let lunarEnabled = false; // true/false
-let lunarCourts = []; // fx [1,2,3]
-let lunarRound1 = []; // [{ courtId, homeIdx1, homeIdx2, awayIdx1, awayIdx2 }, ...]
-let lunarRound2 = []; // samme struktur
-let lunarSuperMatchCourtId = null; // bane til SUPER MATCH-TIE (7. kamp)
+let lunarEnabled = false;
+let lunarCourts = [];
+let lunarRound1 = [];
+let lunarRound2 = [];
+let lunarSuperMatchCourtId = null;
 let lunarSuperMatchPlayers = {
   homeIdx1: null,
   homeIdx2: null,
@@ -134,9 +126,38 @@ let lunarSuperMatchPlayers = {
 };
 
 // ==== LUNAR RESULTATER ====
-let lunarResults = []; // snapshots
+let lunarResults = [];
 let lunarHomeWinsTotal = 0;
 let lunarAwayWinsTotal = 0;
+
+// =====================
+// NEW: CLOUD SETUP / COMMANDS (CONFIG) STATE
+// =====================
+
+// Per-court "QR/admin key" (mobilen skal have key for at poste config)
+// Ligger i state.json så de overlever deploy/restart.
+let courtSetupKeys = {
+  1: "",
+  2: "",
+  3: "",
+  4: "",
+  5: "",
+};
+
+// Per-court pending config (ESP32 poller efter disse)
+const pendingConfigs = {
+  1: null,
+  2: null,
+  3: null,
+  4: null,
+  5: null,
+};
+
+// Helper: random key
+function makeKey(len = 12) {
+  // URL-safe-ish
+  return crypto.randomBytes(Math.ceil(len)).toString("base64url").slice(0, len);
+}
 
 // =====================
 // STATE: LOAD/SAVE
@@ -171,6 +192,10 @@ function saveStateToDisk() {
     lunarAwayWinsTotal,
 
     courts: courtsAdminConfig,
+
+    // NEW
+    courtSetupKeys,
+    pendingConfigs,
   });
 }
 
@@ -258,7 +283,38 @@ function loadStateFromDisk() {
     });
   }
 
+  // NEW: setup keys
+  if (s.courtSetupKeys && typeof s.courtSetupKeys === "object") {
+    for (let i = 1; i <= 5; i++) {
+      const v = s.courtSetupKeys[i];
+      if (typeof v === "string") courtSetupKeys[i] = v;
+    }
+  }
+
+  // NEW: pending configs
+  if (s.pendingConfigs && typeof s.pendingConfigs === "object") {
+    for (let i = 1; i <= 5; i++) {
+      const v = s.pendingConfigs[i];
+      pendingConfigs[i] = v && typeof v === "object" ? v : null;
+    }
+  }
+
   console.log("[STATE] Loaded:", STATE_FILE);
+}
+
+// Ensure keys exist (create on first boot)
+function ensureCourtKeys() {
+  let changed = false;
+  for (let i = 1; i <= 5; i++) {
+    if (!courtSetupKeys[i] || String(courtSetupKeys[i]).trim().length < 6) {
+      courtSetupKeys[i] = makeKey(16);
+      changed = true;
+    }
+  }
+  if (changed) {
+    console.log("[SETUP] Generated new courtSetupKeys");
+    saveStateToDisk();
+  }
 }
 
 // =====================
@@ -294,7 +350,6 @@ function computeEffectiveNames(c) {
   let usedAwayIdx2 = c.awayIdx2;
   let lunarRoundUsed = null;
 
-  // LUNAR overrides (runde 2 prioritet)
   if (isLunar) {
     const r2 = Array.isArray(lunarRound2) ? lunarRound2.find((e) => e.courtId === c.courtId) : null;
     const r1 = Array.isArray(lunarRound1) ? lunarRound1.find((e) => e.courtId === c.courtId) : null;
@@ -314,7 +369,6 @@ function computeEffectiveNames(c) {
     }
   }
 
-  // SUPER MATCH-TIE override
   if (isLunar && isSuperMatchTie && lunarSuperMatchPlayers) {
     const p = lunarSuperMatchPlayers;
     const hasAny = p.homeIdx1 != null || p.homeIdx2 != null || p.awayIdx1 != null || p.awayIdx2 != null;
@@ -326,11 +380,9 @@ function computeEffectiveNames(c) {
     }
   }
 
-  // Admin navne
   if (c.adminHomeName) effHome = c.adminHomeName;
   if (c.adminAwayName) effAway = c.adminAwayName;
 
-  // From roster indices
   const fromHomeRoster = buildNameFromIndices("home", usedHomeIdx1, usedHomeIdx2);
   const fromAwayRoster = buildNameFromIndices("away", usedAwayIdx1, usedAwayIdx2);
 
@@ -359,6 +411,318 @@ function pickPointsStr({ hp, ap, suppliedHomeStr, suppliedAwayStr }) {
   const fallbackA = Number.isFinite(Number(ap)) ? String(Number(ap)) : "0";
 
   return { home: hs !== "" ? hs : fallbackH, away: as !== "" ? as : fallbackA };
+}
+
+function toBool(v, def) {
+  if (v === undefined || v === null) return def;
+  if (typeof v === "boolean") return v;
+  if (typeof v === "number") return v !== 0;
+  if (typeof v === "string") {
+    const s = v.toLowerCase();
+    if (s === "true" || s === "1" || s === "yes" || s === "on") return true;
+    if (s === "false" || s === "0" || s === "no" || s === "off") return false;
+  }
+  return def;
+}
+
+function cleanCourtId(req) {
+  const cid = Number(req.params?.id);
+  if (!Number.isFinite(cid) || cid < 1 || cid > 5) return null;
+  return cid;
+}
+
+// =====================
+// NEW: CLOUD SETUP API
+// =====================
+
+// POST /api/court/:id/config   (mobil UI -> cloud)
+// Body: { key, goldenMT, countPoints, goldenPoint, bo3, mtb3 }
+app.post("/api/court/:id/config", (req, res) => {
+  const courtId = cleanCourtId(req);
+  if (!courtId) return res.status(400).json({ error: "Invalid courtId" });
+
+  const body = req.body || {};
+  const key = typeof body.key === "string" ? body.key.trim() : "";
+
+  if (!key || key !== courtSetupKeys[courtId]) {
+    return res.status(403).json({ error: "Bad key" });
+  }
+
+  // sanitize booleans
+  const cfg = {
+    goldenMT: toBool(body.goldenMT, false),
+    countPoints: toBool(body.countPoints, true),
+    goldenPoint: toBool(body.goldenPoint, true),
+    bo3: toBool(body.bo3, true),
+    mtb3: toBool(body.mtb3, false),
+  };
+
+  // Enforce constraints (same as your UI logic)
+  if (cfg.goldenMT) {
+    // goldenMT mode ignores everything else
+    cfg.countPoints = true;
+    cfg.goldenPoint = false;
+    cfg.bo3 = false;
+    cfg.mtb3 = false;
+  } else {
+    // Parti => goldenPoint irrelevant
+    if (!cfg.countPoints) cfg.goldenPoint = false;
+    // Kont. => no mtb3
+    if (!cfg.bo3) cfg.mtb3 = false;
+  }
+
+  const cfgId = crypto.randomUUID();
+  const now = Date.now();
+  const expiresAt = now + 10 * 60 * 1000; // 10 min
+
+  pendingConfigs[courtId] = {
+    cfgId,
+    courtId,
+    cfg,
+    status: "pending",
+    createdAt: now,
+    expiresAt,
+    appliedAt: null,
+  };
+
+  saveStateToDisk();
+
+  return res.json({ status: "ok", cfgId, courtId });
+});
+
+// GET /api/court/:id/config/pending  (ESP32 -> cloud poll)
+// Header: x-device-key: <optional> (kan du bruge cloudApiKey senere)
+// Returns: { pending: true/false, cfgId, cfg } (+ timestamps)
+app.get("/api/court/:id/config/pending", (req, res) => {
+  const courtId = cleanCourtId(req);
+  if (!courtId) return res.status(400).json({ error: "Invalid courtId" });
+
+  const entry = pendingConfigs[courtId];
+  if (!entry) return res.json({ pending: false });
+
+  // expire
+  if (Date.now() > Number(entry.expiresAt || 0)) {
+    pendingConfigs[courtId] = null;
+    saveStateToDisk();
+    return res.json({ pending: false, expired: true });
+  }
+
+  return res.json({
+    pending: true,
+    cfgId: entry.cfgId,
+    courtId,
+    cfg: entry.cfg,
+    createdAt: entry.createdAt,
+    expiresAt: entry.expiresAt,
+  });
+});
+
+// POST /api/court/:id/config/ack  (ESP32 -> cloud)
+// Body: { cfgId, ok=true/false, message? }
+app.post("/api/court/:id/config/ack", (req, res) => {
+  const courtId = cleanCourtId(req);
+  if (!courtId) return res.status(400).json({ error: "Invalid courtId" });
+
+  const body = req.body || {};
+  const cfgId = typeof body.cfgId === "string" ? body.cfgId.trim() : "";
+  const ok = toBool(body.ok, true);
+  const message = typeof body.message === "string" ? body.message.slice(0, 200) : "";
+
+  const entry = pendingConfigs[courtId];
+  if (!entry) return res.status(404).json({ error: "No pending config" });
+  if (!cfgId || cfgId !== entry.cfgId) return res.status(409).json({ error: "cfgId mismatch" });
+
+  // mark applied and clear pending (simple model)
+  entry.status = ok ? "applied" : "failed";
+  entry.appliedAt = Date.now();
+  entry.message = message || null;
+
+  // clear pending so it won't re-apply
+  pendingConfigs[courtId] = null;
+
+  saveStateToDisk();
+
+  return res.json({ status: "ok" });
+});
+
+// GET /api/court/:id/setupKey  (OPTIONAL: admin/debug - fjern senere hvis du vil)
+// app.get("/api/court/:id/setupKey", (req,res)=>{ ... })
+
+// =====================
+// NEW: Cloud setup UI page (very simple)
+// =====================
+// GET /court/:id/setup?key=XXXXX
+app.get("/court/:id/setup", (req, res) => {
+  const courtId = cleanCourtId(req);
+  if (!courtId) return res.status(400).send("Bad court id");
+
+  const key = typeof req.query.key === "string" ? req.query.key.trim() : "";
+  if (!key || key !== courtSetupKeys[courtId]) {
+    return res.status(403).send("Bad key");
+  }
+
+  const sponsor = (courtsMeta.find((c) => c.id === courtId)?.sponsor || `Court ${courtId}`).toString();
+
+  // Minimal HTML UI (du kan senere erstatte med din egen admin.html styling)
+  const html = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Setup – ${escapeHtml(sponsor)}</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:18px;max-width:780px}
+    .card{border:1px solid #ddd;border-radius:12px;padding:14px;margin:12px 0}
+    .section-title{font-weight:800;margin:12px 0 6px 0;font-size:16px}
+    .hint{color:#555;font-size:13px;line-height:1.35;margin:6px 0 0 0}
+    .setting{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;margin:14px 0}
+    .setting .left,.setting .right{font-size:15px;text-align:center;line-height:1.2}
+    .setting small{color:#666;font-size:12px}
+    .switch{position:relative;width:56px;height:30px}
+    .switch input{display:none}
+    .slider{position:absolute;inset:0;background:#ccc;border-radius:999px;transition:.25s}
+    .slider:before{content:"";position:absolute;height:24px;width:24px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.25s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+    .switch input:checked + .slider{background:#0b57d0}
+    .switch input:checked + .slider:before{transform:translateX(26px)}
+    .disabled{opacity:0.45;pointer-events:none}
+    .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    button{padding:10px 14px;border-radius:10px;border:1px solid #333;background:#111;color:#fff;font-size:16px}
+    .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#eee;font-size:12px}
+  </style>
+</head>
+<body>
+  <h2>Setup – ${escapeHtml(sponsor)}</h2>
+
+  <div class="card">
+    <b>Bane</b>: <span class="pill">${courtId}</span><br>
+    <p class="hint">Dette virker på mobildata. Når du trykker <b>Start match</b>, sendes opsætningen til boksen på banen.</p>
+  </div>
+
+  <div class="card">
+    <form id="f">
+      <div class="section-title">Kamp</div>
+      <div class="setting">
+        <div class="left">Kamp<br><small>(games & sets)</small></div>
+        <label class="switch">
+          <input id="goldenMT" type="checkbox">
+          <span class="slider"></span>
+        </label>
+        <div class="right">Gold MT<br><small>(direkte MatchTB)</small></div>
+      </div>
+
+      <div id="grpRest">
+        <div class="section-title">Point</div>
+        <div class="setting">
+          <div class="left">Parti<br><small>(hvert tryk = game)</small></div>
+          <label class="switch">
+            <input id="countPoints" type="checkbox" checked>
+            <span class="slider"></span>
+          </label>
+          <div class="right">Point<br><small>(0/15/30/40)</small></div>
+        </div>
+
+        <div id="grpGoldenPoint">
+          <div class="section-title">Golden</div>
+          <div class="setting">
+            <div class="left">Fordel</div>
+            <label class="switch">
+              <input id="goldenPoint" type="checkbox" checked>
+              <span class="slider"></span>
+            </label>
+            <div class="right">Golden</div>
+          </div>
+        </div>
+
+        <div class="section-title">3 Set</div>
+        <div class="setting">
+          <div class="left">Kont.</div>
+          <label class="switch">
+            <input id="bo3" type="checkbox" checked>
+            <span class="slider"></span>
+          </label>
+          <div class="right">3 sæt</div>
+        </div>
+
+        <div id="grpThirdSetMode">
+          <div class="section-title">Fuld 3.</div>
+          <div class="setting">
+            <div class="left">Fuld 3.</div>
+            <label class="switch">
+              <input id="mtb3" type="checkbox">
+              <span class="slider"></span>
+            </label>
+            <div class="right">MatchTB</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="btnrow">
+        <button type="submit">Start match</button>
+      </div>
+
+      <p id="status" class="hint"></p>
+    </form>
+  </div>
+
+  <script>
+    const KEY = ${JSON.stringify(key)};
+    const COURT = ${JSON.stringify(courtId)};
+
+    function $(id){ return document.getElementById(id); }
+    function setDisabled(el, dis){ if(!el) return; if(dis) el.classList.add('disabled'); else el.classList.remove('disabled'); }
+
+    function refreshUI(){
+      const gmt = $('goldenMT').checked;
+      const cp = $('countPoints').checked; // true=Point false=Parti
+      const bo3 = $('bo3').checked;        // true=3set false=Kont
+      setDisabled($('grpRest'), gmt);
+      setDisabled($('grpGoldenPoint'), (!cp) && (!gmt));
+      const disThird = (!bo3) && (!gmt);
+      setDisabled($('grpThirdSetMode'), disThird);
+      if(disThird) $('mtb3').checked = false;
+    }
+
+    ['goldenMT','countPoints','bo3','mtb3'].forEach(id => $(id).addEventListener('change', refreshUI));
+    refreshUI();
+
+    $('f').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      $('status').textContent = 'Sender...';
+      try{
+        const payload = {
+          key: KEY,
+          goldenMT: $('goldenMT').checked,
+          countPoints: $('countPoints').checked,
+          goldenPoint: $('goldenPoint').checked,
+          bo3: $('bo3').checked,
+          mtb3: $('mtb3').checked
+        };
+        const r = await fetch('/api/court/' + COURT + '/config', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
+        });
+        const j = await r.json();
+        if(!r.ok){ throw new Error(j && j.error ? j.error : 'fail'); }
+        $('status').textContent = 'Sendt ✅ (cfgId ' + j.cfgId + '). Boksen anvender den typisk indenfor 1-2 sek.';
+      }catch(err){
+        $('status').textContent = 'Fejl: ' + (err.message || err);
+      }
+    });
+  </script>
+</body>
+</html>`;
+
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.send(html);
+});
+
+function escapeHtml(s) {
+  return String(s)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
 }
 
 // =====================
@@ -407,18 +771,6 @@ app.post("/api/updateScore", (req, res) => {
     return Number.isFinite(n) ? n : def;
   }
 
-  function toBool(v, def) {
-    if (v === undefined || v === null) return def;
-    if (typeof v === "boolean") return v;
-    if (typeof v === "number") return v !== 0;
-    if (typeof v === "string") {
-      const s = v.toLowerCase();
-      if (s === "true" || s === "1" || s === "yes") return true;
-      if (s === "false" || s === "0" || s === "no") return false;
-    }
-    return def;
-  }
-
   // Raw names
   if (homeName !== undefined) c.homeName = homeName;
   if (awayName !== undefined) c.awayName = awayName;
@@ -461,7 +813,6 @@ app.post("/api/updateScore", (req, res) => {
   if (winner !== undefined) c.winner = toIntOrDefault(winner, 0);
   if (mtb3rd !== undefined) c.mtb3rd = toBool(mtb3rd, false);
 
-  // derive winner if missing
   if (c.matchFinished && (!c.winner || c.winner === 0)) {
     const hs = Number(c.homeSets || 0);
     const as = Number(c.awaySets || 0);
@@ -469,7 +820,6 @@ app.post("/api/updateScore", (req, res) => {
     else if (as > hs) c.winner = 2;
   }
 
-  // ---- LUNAR snapshot logic (samme som før) ----
   const newFinished = !!c.matchFinished;
   const newWinner = Number(c.winner || 0);
 
@@ -523,7 +873,6 @@ app.post("/api/updateScore", (req, res) => {
     if (existingIndex >= 0) lunarResults[existingIndex] = snapshot;
     else lunarResults.push(snapshot);
 
-    // Hvis du vil have LUNAR-resultater og totals til at overleve genstart:
     saveStateToDisk();
   }
 
@@ -534,10 +883,9 @@ app.post("/api/updateScore", (req, res) => {
 });
 
 // =====================
-// ADMIN endpoints
+// ADMIN endpoints (unchanged)
 // =====================
 
-// POST /api/setNames  (valgfri admin override navne pr bane)
 app.post("/api/setNames", (req, res) => {
   const { courtId, homeName, awayName } = req.body || {};
 
@@ -560,7 +908,6 @@ app.post("/api/setNames", (req, res) => {
   });
 });
 
-// POST /api/setRoster
 app.post("/api/setRoster", (req, res) => {
   const body = req.body || {};
   const hp = Array.isArray(body.homePlayers) ? body.homePlayers : [];
@@ -578,7 +925,6 @@ app.post("/api/setRoster", (req, res) => {
   return res.json({ status: "ok", homePlayers, awayPlayers });
 });
 
-// POST /api/setCourtPlayers
 app.post("/api/setCourtPlayers", (req, res) => {
   const { courtId, homeIdx1, homeIdx2, awayIdx1, awayIdx2 } = req.body || {};
 
@@ -613,7 +959,6 @@ app.post("/api/setCourtPlayers", (req, res) => {
   });
 });
 
-// POST /api/setStandardVisibleCourts
 app.post("/api/setStandardVisibleCourts", (req, res) => {
   const body = req.body || {};
   const arr = body.standardVisibleCourts;
@@ -627,7 +972,6 @@ app.post("/api/setStandardVisibleCourts", (req, res) => {
     .filter((n) => Number.isFinite(n) && n >= 1 && n <= 5);
 
   if (standardVisibleCourts.length === 0) {
-    // undgå tom visning, fallback til alle
     standardVisibleCourts = [1, 2, 3, 4, 5];
   }
 
@@ -636,7 +980,6 @@ app.post("/api/setStandardVisibleCourts", (req, res) => {
   return res.json({ status: "ok", standardVisibleCourts });
 });
 
-// POST /api/setCourtsMeta  (NYT: gem banenavne)
 app.post("/api/setCourtsMeta", (req, res) => {
   const body = req.body || {};
   const arr = body.courtsMeta;
@@ -665,14 +1008,12 @@ app.post("/api/setCourtsMeta", (req, res) => {
   return res.json({ status: "ok", courtsMeta });
 });
 
-// POST /api/setLunarConfig
 app.post("/api/setLunarConfig", (req, res) => {
   const body = req.body || {};
   const { lunarEnabled: enabledFromClient, lunarCourts: courtsFromClient, lunarSuperMatchCourtId: superFromClient } = body;
 
   lunarEnabled = !!enabledFromClient;
 
-  // Hvis LUNAR slås FRA → nulstil LUNAR-state + resultater/stilling
   if (!lunarEnabled) {
     lunarCourts = [];
     lunarRound1 = [];
@@ -700,14 +1041,12 @@ app.post("/api/setLunarConfig", (req, res) => {
     });
   }
 
-  // LUNAR courts
   if (Array.isArray(courtsFromClient)) {
     lunarCourts = courtsFromClient.map(Number).filter((n) => Number.isFinite(n) && n >= 1 && n <= 5);
   } else {
     lunarCourts = [];
   }
 
-  // Super match court must be among lunarCourts
   let superId = null;
   if (superFromClient !== undefined && superFromClient !== null && superFromClient !== "") {
     const n = Number(superFromClient);
@@ -731,7 +1070,6 @@ app.post("/api/setLunarConfig", (req, res) => {
   });
 });
 
-// POST /api/setLunarCourtPlayers
 app.post("/api/setLunarCourtPlayers", (req, res) => {
   const { round, courtId, homeIdx1, homeIdx2, awayIdx1, awayIdx2 } = req.body || {};
   const r = Number(round);
@@ -774,7 +1112,6 @@ app.post("/api/setLunarCourtPlayers", (req, res) => {
   });
 });
 
-// POST /api/setLunarSuperMatchPlayers
 app.post("/api/setLunarSuperMatchPlayers", (req, res) => {
   const { homeIdx1, homeIdx2, awayIdx1, awayIdx2 } = req.body || {};
 
@@ -798,7 +1135,6 @@ app.post("/api/setLunarSuperMatchPlayers", (req, res) => {
   return res.json({ status: "ok", ...lunarSuperMatchPlayers });
 });
 
-// GET /api/adminState
 app.get("/api/adminState", (req, res) => {
   const courtsAdmin = Object.values(courts).map((c) => ({
     courtId: c.courtId,
@@ -814,7 +1150,6 @@ app.get("/api/adminState", (req, res) => {
     homePlayers,
     awayPlayers,
 
-    // NYT
     courtsMeta,
     standardVisibleCourts,
 
@@ -829,6 +1164,9 @@ app.get("/api/adminState", (req, res) => {
     lunarResults,
     lunarHomeWinsTotal,
     lunarAwayWinsTotal,
+
+    // NEW (useful for printing QR once)
+    courtSetupKeys,
   });
 });
 
@@ -882,6 +1220,9 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // Load persisted state at startup
 loadStateFromDisk();
+
+// Ensure per-court QR keys exist
+ensureCourtKeys();
 
 // Start server
 app.listen(PORT, () => {
