@@ -595,14 +595,14 @@ app.get("/court/:id/setup", (req, res) => {
 
   <div class="card">
     <b>Bane</b>: <span class="pill">${courtId}</span><br>
-    <p class="hint">Dette virker på mobildata. Når du trykker <b>Start match</b>, sendes opsætningen til boksen på banen.</p>
+    <p class="hint">Når du trykker <b>Start match</b>, sendes opsætningen til boksen på banen.</p>
   </div>
 
   <div class="card">
     <form id="f">
-      <div class="section-title">Kamp</div>
+      <div class="section-title">Kampformat</div>
       <div class="setting">
-        <div class="left">Kamp<br><small>(games & sets)</small></div>
+        <div class="left">Kamp<br><small>(partier & sets)</small></div>
         <label class="switch">
           <input id="goldenMT" type="checkbox">
           <span class="slider"></span>
@@ -611,9 +611,9 @@ app.get("/court/:id/setup", (req, res) => {
       </div>
 
       <div id="grpRest">
-        <div class="section-title">Point</div>
+        <div class="section-title">Tælling</div>
         <div class="setting">
-          <div class="left">Parti<br><small>(hvert tryk = game)</small></div>
+          <div class="left">Parti<br><small>(hvert tryk = parti)</small></div>
           <label class="switch">
             <input id="countPoints" type="checkbox" checked>
             <span class="slider"></span>
@@ -622,7 +622,7 @@ app.get("/court/:id/setup", (req, res) => {
         </div>
 
         <div id="grpGoldenPoint">
-          <div class="section-title">Golden</div>
+          <div class="section-title">Der spilles med...</div>
           <div class="setting">
             <div class="left">Fordel</div>
             <label class="switch">
@@ -633,9 +633,9 @@ app.get("/court/:id/setup", (req, res) => {
           </div>
         </div>
 
-        <div class="section-title">3 Set</div>
+        <div class="section-title">Sæt-tælling</div>
         <div class="setting">
-          <div class="left">Kont.</div>
+          <div class="left">Kontinuerlig</div>
           <label class="switch">
             <input id="bo3" type="checkbox" checked>
             <span class="slider"></span>
@@ -644,7 +644,7 @@ app.get("/court/:id/setup", (req, res) => {
         </div>
 
         <div id="grpThirdSetMode">
-          <div class="section-title">Fuld 3.</div>
+          <div class="section-title">3. sæt afgøres med...</div>
           <div class="setting">
             <div class="left">Fuld 3.</div>
             <label class="switch">
